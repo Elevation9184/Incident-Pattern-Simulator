@@ -1,0 +1,2218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Pattern Simulator Beta Release</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --sidebar-bg: #161b22;
+            --card-bg: #21262d;
+            --text-color: #c9d1d9;
+            --text-muted: #8b949e;
+            --text-bright: #f0f6fc;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-red: #f85149;
+            --accent-amber: #d29922;
+            --accent-purple: #a371f7;
+            --border-color: #30363d;
+            --border-highlight: #484f58;
+            --gradient-prosecution: linear-gradient(135deg, #f85149 0%, #da3633 100%);
+            --gradient-defence: linear-gradient(135deg, #3fb950 0%, #238636 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            line-height: 1.5;
+        }
+
+        /* Sidebar Controls */
+        #sidebar {
+            width: 420px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        #sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #sidebar::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+
+        #sidebar::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        h1 {
+            font-family: 'Crimson Pro', Georgia, serif;
+            font-size: 1.75rem;
+            margin: 0 0 2px 0;
+            color: var(--text-bright);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: #dce3eb;
+            margin-bottom: 12px;
+            line-height: 1.4;
+            text-align: left;
+            font-weight: 450;
+        }
+
+        h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent-blue);
+            margin-bottom: 12px;
+            margin-top: 0;
+            font-weight: 500;
+        }
+
+        .control-group {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .control-group.highlight-red {
+            border-left: 3px solid var(--accent-red);
+        }
+
+        .control-group.highlight-green {
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .control-group.highlight-amber {
+            border-left: 3px solid var(--accent-amber);
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-color);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 8px 0;
+            cursor: pointer;
+            accent-color: var(--accent-blue);
+            background: transparent;
+        }
+
+        select, input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            font-family: inherit;
+        }
+
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        .value-display {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-blue);
+            font-size: 0.85rem;
+        }
+
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .collapsible-header:hover h2 {
+            color: var(--text-bright);
+        }
+
+        .collapse-icon {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            transition: transform 0.2s;
+        }
+
+        .collapsible-content {
+            display: none;
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            border-top: 1px solid var(--border-color);
+            padding-top: 12px;
+        }
+
+        .collapsible-content.open {
+            display: block;
+        }
+
+        .help-icon {
+            cursor: help;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            margin-left: 4px;
+            opacity: 0.7;
+        }
+
+        .help-icon:hover {
+            opacity: 1;
+        }
+
+        #preview-container {
+            margin-top: 10px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px;
+            height: 110px;
+            position: relative;
+        }
+
+        .btn-primary {
+            background: var(--gradient-prosecution);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(248, 81, 73, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: var(--border-color);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* View Toggle */
+        .view-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .view-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .view-btn:hover {
+            border-color: var(--border-highlight);
+            color: var(--text-color);
+        }
+
+        .view-btn.active-prosecution {
+            background: var(--gradient-prosecution);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .view-btn.active-defence {
+            background: var(--gradient-defence);
+            border-color: var(--accent-green);
+            color: white;
+        }
+
+        /* Main Content */
+        #main {
+            flex-grow: 1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .legend-box {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 12px;
+            justify-content: center;
+            font-size: 0.8rem;
+            background: var(--card-bg);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+        }
+
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .diamond {
+            width: 10px; height: 10px;
+            background-color: var(--accent-red);
+            transform: rotate(45deg);
+            display: inline-block;
+        }
+        .triangle {
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 10px solid var(--accent-amber);
+            display: inline-block;
+        }
+        .bar-sample { width: 20px; height: 12px; background-color: var(--text-muted); border-radius: 2px; opacity: 0.6; }
+        .range-sample { width: 4px; height: 16px; background-color: var(--border-highlight); }
+
+        #chart-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            flex-grow: 1;
+            position: relative;
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 8px;
+        }
+
+        #canvas-wrapper {
+            flex-grow: 1;
+            position: relative;
+            min-height: 300px;
+        }
+
+        /* Presentation Panels */
+        .presentation-panel {
+            margin-top: 0;
+            padding: 20px;
+            border-radius: 0 0 10px 10px;
+            display: none;
+        }
+
+        .presentation-panel.active {
+            display: block;
+        }
+
+        .presentation-panel.prosecution {
+            background: linear-gradient(135deg, rgba(248, 81, 73, 0.1) 0%, rgba(218, 54, 51, 0.05) 100%);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+        }
+
+        .presentation-panel.defence {
+            background: linear-gradient(135deg, rgba(63, 185, 80, 0.1) 0%, rgba(35, 134, 54, 0.05) 100%);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+
+        .presentation-header {
+            font-family: 'Crimson Pro', Georgia, serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .prosecution .presentation-header {
+            color: var(--accent-red);
+        }
+
+        .defence .presentation-header {
+            color: var(--accent-green);
+        }
+
+        .presentation-content {
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .method-note {
+            font-size: 0.85em;
+            line-height: 1.4;
+            opacity: 0.75;
+            margin-top: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            border-left: 3px solid var(--border-color);
+            background: rgba(128, 128, 128, 0.05);
+        }
+
+        .method-note em {
+            color: var(--text-muted);
+        }
+
+        .stat-highlight {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .prosecution .stat-highlight {
+            color: var(--accent-red);
+        }
+
+        .defence .stat-highlight {
+            color: var(--accent-green);
+        }
+
+        /* Stats Grid */
+        #stats-panel {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 900px) {
+            #stats-panel {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .stat-item {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            min-height: 90px;
+        }
+
+        .stat-item.highlight {
+            border-color: var(--accent-purple);
+            background: rgba(163, 113, 247, 0.05);
+        }
+
+        .stat-item strong {
+            display: block;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .stat-item span {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: block;
+            color: var(--text-bright);
+        }
+
+        .stat-item.danger span {
+            color: var(--accent-red);
+        }
+
+        .stat-item.success span {
+            color: var(--accent-green);
+        }
+
+        .stat-item.warning span {
+            color: var(--accent-amber);
+        }
+
+        .stat-subtext {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Expected vs Observed Panel */
+        .comparison-panel {
+            margin-top: 16px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .comparison-header {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent-purple);
+            margin-bottom: 16px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            text-align: center;
+        }
+
+        .comparison-item {
+            padding: 12px;
+            background: var(--bg-color);
+            border-radius: 8px;
+        }
+
+        .comparison-item .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .comparison-item .value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-bright);
+        }
+
+        .comparison-item.expected .value {
+            color: var(--accent-blue);
+        }
+
+        .comparison-item.observed .value {
+            color: var(--accent-amber);
+        }
+
+        .comparison-item.ratio .value {
+            color: var(--accent-green);
+        }
+
+        .comparison-item.ratio.elevated .value {
+            color: var(--accent-red);
+        }
+
+        /* Confidence Interval */
+        .ci-display {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        #status-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 8px;
+            display: none;
+            z-index: 100;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .annotation {
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            padding: 16px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-purple);
+        }
+
+        .annotation strong {
+            color: var(--accent-purple);
+        }
+
+        .disabled-control {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .info-box {
+            background: var(--bg-color);
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+
+        .info-box strong {
+            color: var(--text-color);
+        }
+
+        /* Tabs */
+        .tab-container {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            background: var(--bg-color);
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-color);
+            background: var(--card-bg);
+        }
+
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--accent-blue);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Multiple Comparisons Panel */
+        .mc-panel {
+            background: rgba(163, 113, 247, 0.08);
+            border: 1px solid rgba(163, 113, 247, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+
+        .mc-header {
+            font-family: 'Crimson Pro', Georgia, serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent-purple);
+            margin-bottom: 12px;
+        }
+
+        .mc-stat {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin: 8px 0;
+        }
+
+        .mc-explanation {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Mobile */
+        @media (max-width: 900px) {
+            body { flex-direction: column; height: auto; overflow: auto; }
+            #sidebar { width: 100%; }
+            #main { min-height: auto; }
+            .comparison-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h1>Incident Pattern Simulator<br>Beta Release</h1>
+    <p class="subtitle"><span style="font-size: 1.1em;">▸</span> Demonstrating how high incident overlap emerges naturally from workload patterns—without wrongdoing.</p>
+
+    <div style="background: rgba(210, 153, 34, 0.15); border: 1px solid #d29922; border-radius: 6px; padding: 10px; margin-bottom: 16px; font-size: 0.75rem; color: #eac54f;">
+        <div style="text-align: center; margin-bottom: 6px;"><strong>⚠️ NOT FOR JUDICIAL USE</strong></div>
+        This software is a demonstrative aid for educational purposes only. It is <u>not</u> a validated forensic instrument.
+        <br><br>
+        Any application to real-world case data requires independent verification by a qualified expert (e.g., CStat/PStat accredited). See <em>Documentation §1.1</em> for full liability disclaimer.
+    </div>
+
+    <!-- Mode Selection -->
+    <div class="control-group">
+        <h2>Analysis Mode <span class="help-icon" title="Standard: Fixed suspect vs others. Selection Effect: Models investigator bias. No Pre-designation: No suspect chosen in advance—reports maximum overlap for any nurse.">(?)</span></h2>
+        <div class="tab-container">
+            <button class="tab-btn active" data-tab="standard" onclick="switchMode('standard')">Standard</button>
+            <button class="tab-btn" data-tab="selection" onclick="switchMode('selection')">Selection Effect</button>
+            <button class="tab-btn" data-tab="undesignated" onclick="switchMode('undesignated')">No Pre-designation</button>
+        </div>
+
+        <div id="mode-desc-standard" class="tab-content active">
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
+                Standard Monte Carlo: Fixed suspect (Nurse 38), random incident placement, compare overlap distributions.
+            </p>
+        </div>
+        <div id="mode-desc-selection" class="tab-content">
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
+                <strong style="color: var(--accent-amber);">Selection Effect:</strong> Simulates investigator bias by generating a larger pool of events, then selecting incidents where suspect was present. Shows how circular selection inflates apparent coincidence.
+            </p>
+        </div>
+        <div id="mode-desc-undesignated" class="tab-content">
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
+                <strong style="color: var(--accent-green);">No Pre-designation:</strong> All 38 nurses drawn from same distribution. Reports maximum overlap for <em>any</em> nurse—answers "how unusual is it for someone to overlap this much?"
+            </p>
+        </div>
+    </div>
+
+    <!-- Advanced Config -->
+    <div class="control-group">
+        <div class="collapsible-header" onclick="toggleCollapse('model-config')">
+            <h2 style="margin-bottom: 0;">Advanced Configuration</h2>
+            <span class="collapse-icon">▼</span>
+        </div>
+        <div id="model-config" class="collapsible-content">
+            <label>Overlap Mechanism <span class="help-icon" title="Shift-Based: Exact model where nurses occupy specific shift slots and incidents occur in specific slots—overlap is their intersection. Binomial: Faster approximation treating each incident as independent coin flip.">(?)</span></label>
+            <select id="sim-mode">
+                <option value="shift">Shift-Based Roster (Hypergeometric)</option>
+                <option value="binomial">Binomial Approximation</option>
+            </select>
+
+            <div id="shift-options">
+                <label>Shift Count Logic <span class="help-icon" title="Fixed: Nurses work exactly the same shifts every trial. Random: Workload varies per trial.">(?)</span></label>
+                <select id="shift-logic">
+                    <option value="fixed">Fixed Totals (Conditional)</option>
+                    <option value="random">Random Totals (Generative)</option>
+                </select>
+            </div>
+
+            <label>RNG Seed <span class="help-icon" title="Blank = fresh random seed each run. Enter an integer for reproducible results.">(?)</span></label>
+            <input type="text" id="sim-seed" value="" placeholder="Leave blank for random...">
+
+            <div class="info-box">
+                <strong>Definitions:</strong><br>
+                • <b>730 shifts</b> = 365 days × 2 shifts/day<br>
+                • Incidents placed without replacement<br>
+                • Fixed Totals: round(p × 730) shifts per nurse
+            </div>
+        </div>
+    </div>
+
+    <!-- Ward Staffing -->
+    <div class="control-group">
+        <h2>Ward Staffing Profile <span class="help-icon" title="Controls how varied nurses' hours are. Presets model different ward types; adjust Mean and Consistency for custom scenarios.">(?)</span></h2>
+        <select id="preset-select">
+            <option value="oquigley">O'Quigley (2025) Case Analysis</option>
+            <option value="standard">Standard Core Team</option>
+            <option value="agency">Agency-Heavy</option>
+            <option value="high-acuity">High-Acuity Ward</option>
+            <option value="custom">Custom</option>
+        </select>
+
+        <label>Mean Workload <span id="val-mean" class="value-display">15.6%</span> <span class="help-icon" title="Average proportion of shifts worked across all nurses. Higher = busier ward or more full-time staff.">(?)</span></label>
+        <input type="range" id="param-mean" min="0.05" max="0.5" step="0.005" value="0.156">
+
+        <label>Consistency <span id="val-consistency" class="value-display">20.5</span> <span class="help-icon" title="How similar are nurses' workloads? Higher = more uniform hours. Lower = mix of full-time and casual staff.">(?)</span></label>
+        <input type="range" id="param-consistency" min="2" max="100" step="0.5" value="20.45">
+
+        <div id="preview-container">
+            <canvas id="betaPreview"></canvas>
+        </div>
+        <p style="font-size: 0.7rem; color: var(--text-muted); margin: 6px 0 0 0;">
+            Shift distribution preview (sorted 1→38). 12h shifts, 14 slots/week cap.
+        </p>
+    </div>
+
+    <!-- Clinical Factors -->
+    <div class="control-group highlight-red">
+        <h2>Suspect Nurse Exposure <span class="help-icon" title="Sets the suspect's shift coverage directly. Higher values model nurses who work overtime, cover staff shortages, or take extra shifts.">(?)</span></h2>
+
+        <label>
+            Suspect Presence Rate
+            <span id="val-bias" class="value-display">35%</span>
+        </label>
+        <input type="range" id="param-bias" min="5" max="60" step="1" value="35">
+        <p style="font-size: 0.7rem; color: var(--text-muted); margin: 4px 0 8px 0;">
+            Percentage of all shifts worked by the suspect nurse.
+        </p>
+        <div class="info-box" style="margin-top: 0;">
+            <span id="suspect-hours-display">≈ 59 hrs/week</span> ·
+            <span id="suspect-ratio-display">2.2× ward average</span>
+        </div>
+
+        <div id="acuity-group">
+            <label>
+                Acuity Assignment Tilt
+                <span id="val-acuity" class="value-display" style="color: var(--accent-amber);">+0%</span>
+            </label>
+            <input type="range" id="param-acuity" min="0" max="100" step="5" value="0">
+            <p style="font-size: 0.7rem; color: var(--text-muted); margin: 4px 0 0 0;" id="acuity-desc">
+                Probability boost for high-risk shifts (experienced nurses get sicker patients).
+            </p>
+        </div>
+    </div>
+
+    <!-- Selection Effect Controls -->
+    <div class="control-group highlight-amber" id="selection-controls" style="display: none;">
+        <h2>Selection Effect Parameters <span class="help-icon" title="Models investigator bias: incidents more likely flagged as 'suspicious' if suspect was present, inflating apparent coincidence.">(?)</span></h2>
+
+        <label>Total Concerning Events <span id="val-pool" class="value-display">100</span></label>
+        <input type="range" id="param-pool" min="30" max="300" step="10" value="100">
+        <p style="font-size: 0.7rem; color: var(--text-muted); margin: 4px 0 12px 0;">
+            Larger pool from which "suspicious" incidents are selected.
+        </p>
+
+        <label>Selection Bias <span id="val-selbias" class="value-display">80% (4.0:1)</span> <span class="help-icon" title="Controls investigator PREFERENCE for classifying suspect-present events as 'suspicious'—not fabrication of evidence. Models how selection criteria can be unconsciously biased toward confirming a hypothesis.">(?)</span></label>
+        <input type="range" id="param-selbias" min="0" max="100" step="5" value="80">
+        <p style="font-size: 0.7rem; color: var(--text-muted); margin: 4px 0 0 0;">
+            Relative weighting for selecting incidents from the pool. Models investigator preference, not evidence fabrication.
+        </p>
+    </div>
+
+    <!-- Simulation Settings -->
+    <div class="control-group">
+        <h2>Simulation Parameters <span class="help-icon" title="Number of incidents to analyse and Monte Carlo trials to run. More trials = more precise estimates.">(?)</span></h2>
+        <label>Suspicious Incidents <span id="val-incidents" class="value-display">25</span></label>
+        <input type="range" id="param-incidents" min="5" max="100" step="1" value="25">
+
+        <label>Monte Carlo Trials <span id="val-trials" class="value-display">5000</span></label>
+        <input type="range" id="param-trials" min="500" max="20000" step="500" value="5000">
+    </div>
+
+    <button class="btn-primary" id="run-sim">▶ Run Simulation</button>
+</div>
+
+<div id="main">
+    <!-- Chart (moved to top) -->
+    <div id="chart-container">
+        <div id="canvas-wrapper">
+            <canvas id="rosterChart"></canvas>
+            <div id="status-msg">Running Simulation...</div>
+        </div>
+    </div>
+
+    <!-- Legend (moved below chart) -->
+    <div class="legend-box">
+        <div class="legend-item">
+            <div class="bar-sample"></div>
+            <span>Mean Overlap</span>
+        </div>
+        <div class="legend-item">
+            <div class="range-sample"></div>
+            <span>5th–95th Range</span>
+        </div>
+        <div class="legend-item">
+            <div class="triangle"></div>
+            <span>99th Percentile</span>
+        </div>
+        <div class="legend-item">
+            <div class="diamond"></div>
+            <span>Max Peak (most extreme observed)</span>
+        </div>
+    </div>
+
+    <!-- View Toggle (moved below legend) -->
+    <div class="view-toggle">
+        <button class="view-btn active-prosecution" id="btn-prosecution" onclick="setView('prosecution')">
+            ⚖️ Prosecution View
+        </button>
+        <button class="view-btn" id="btn-defence" onclick="setView('defence')">
+            🛡️ Defence View
+        </button>
+    </div>
+
+    <!-- Statistic Selector (new standalone section) -->
+    <div class="stat-selector-container" style="display: flex; align-items: center; gap: 12px; margin-bottom: 0; padding: 12px 16px; background: var(--card-bg); border-radius: 8px 8px 0 0; border: 1px solid var(--border-color); border-bottom: none;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin: 0; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px;">Judicial commentary based on:</label>
+        <select id="stat-selector" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-size: 0.85rem; font-family: 'JetBrains Mono', monospace;">
+            <option value="mean">Mean Overlap (average outcome)</option>
+            <option value="p95">95th Percentile (rare outcome)</option>
+            <option value="p99">99th Percentile (very rare outcome)</option>
+            <option value="max" selected>Maximum Peak (most extreme outcome)</option>
+        </select>
+    </div>
+
+    <!-- Presentation Panels -->
+    <div class="presentation-panel prosecution active" id="panel-prosecution" style="position: relative;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); font-size: 1.5rem; font-weight: 700; color: rgba(248, 81, 73, 0.12); pointer-events: none; white-space: nowrap; z-index: 0;">ILLUSTRATIVE FRAMING</div>
+        <div class="presentation-header" style="position: relative; z-index: 1;">
+            ⚖️ Prosecution's Presentation
+        </div>
+        <div class="presentation-content" id="prosecution-content" style="position: relative; z-index: 1;">
+            Loading...
+        </div>
+    </div>
+
+    <div class="presentation-panel defence" id="panel-defence" style="position: relative;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); font-size: 1.5rem; font-weight: 700; color: rgba(63, 185, 80, 0.12); pointer-events: none; white-space: nowrap; z-index: 0;">ILLUSTRATIVE FRAMING</div>
+        <div class="presentation-header" style="position: relative; z-index: 1;">
+            🛡️ Defence's Presentation
+        </div>
+        <div class="presentation-content" id="defence-content" style="position: relative; z-index: 1;">
+            Loading...
+        </div>
+    </div>
+
+    <!-- Expected vs Observed -->
+    <div class="comparison-panel">
+        <div class="comparison-header">Expected vs. Observed Overlap</div>
+        <div class="comparison-grid">
+            <div class="comparison-item expected">
+                <div class="label">Expected (Given Hours)</div>
+                <div class="value" id="comp-expected">—</div>
+            </div>
+            <div class="comparison-item observed">
+                <div class="label">Simulated Mean</div>
+                <div class="value" id="comp-observed">—</div>
+            </div>
+            <div class="comparison-item ratio" id="comp-ratio-box">
+                <div class="label">Ratio (Obs/Exp)</div>
+                <div class="value" id="comp-ratio">—</div>
+            </div>
+        </div>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 12px; text-align: center;">
+            When ratio ≈ 1.0, observed overlaps match statistical expectation given workload.
+        </p>
+    </div>
+
+    <!-- Stats Panel -->
+    <div id="stats-panel">
+        <div class="stat-item">
+            <strong>Ward Mean Fill</strong>
+            <span id="disp-mean-fill">—</span>
+            <div class="stat-subtext">Average nurse workload</div>
+        </div>
+        <div class="stat-item">
+            <strong>Highest Other Nurse</strong>
+            <span id="disp-max-innocent">—</span>
+            <div class="stat-subtext">Maximum non-suspect</div>
+        </div>
+        <div class="stat-item danger">
+            <strong>Suspect Workload</strong>
+            <span id="disp-suspect-fill">—</span>
+            <div class="stat-subtext">Nurse 38's exposure</div>
+        </div>
+        <div class="stat-item highlight" id="prob-panel" title="Tail probability under null hypothesis: how often would an innocent nurse's overlap match or exceed the suspect's, given workload alone? This is NOT a probability of guilt or innocence.">
+            <strong>P(Innocent Match) <span class="help-icon" style="color: var(--accent-purple); cursor: help;">(?)</span></strong>
+            <span id="disp-prob">—</span>
+            <div class="stat-subtext" id="disp-prob-ci">95% CI: —</div>
+        </div>
+    </div>
+
+    <!-- Multiple Comparisons -->
+    <div class="mc-panel" id="mc-panel">
+        <div class="mc-header">📊 Multiple Comparisons Problem</div>
+        <div class="mc-stat" id="mc-stat">—</div>
+        <div class="mc-explanation" id="mc-explanation">
+            In <strong id="mc-pct">—</strong> of simulations, at least one other nurse matched or exceeded the suspect's overlap count.
+        </div>
+    </div>
+
+    <!-- Annotation -->
+    <div class="annotation">
+        <strong>The "Prosecutor's Gap":</strong> Note the distance between the 99th percentile (amber) and the max peak (red).
+        Prosecutors may seize upon this outlier—which occurs naturally in large datasets—and present it as impossible coincidence.
+        But <em>someone</em> will always be the maximum; the question is whether that maximum is unusual given their exposure.
+    </div>
+</div>
+
+<script>
+    // === UTILITIES ===
+
+    function mulberry32(a) {
+        return function() {
+            var t = a += 0x6D2B79F5;
+            t = Math.imul(t ^ t >>> 15, t | 1);
+            t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        }
+    }
+
+    // Format overlap values for display
+    // Mean is non-integer (averaged); order-statistics are integer counts
+    function formatOverlap(value, statKey) {
+        if (value == null || Number.isNaN(value)) return '—';
+        if (statKey === 'mean') return Number(value).toFixed(1);
+        return String(Math.round(value));
+    }
+
+    function randomGamma(alpha, rng) {
+        if (alpha < 1) return randomGamma(1 + alpha, rng) * Math.pow(rng(), 1 / alpha);
+        const d = alpha - 1 / 3;
+        const c = 1 / Math.sqrt(9 * d);
+        while (true) {
+            const x = randNormal(rng);
+            const v = 1 + c * x;
+            if (v <= 0) continue;
+            const v3 = v * v * v;
+            const u = rng();
+            if (u < 1 - 0.0331 * x * x * x * x) return d * v3;
+            if (Math.log(u) < 0.5 * x * x + d * (1 - v3 + Math.log(v3))) return d * v3;
+        }
+    }
+
+    function randNormal(rng) {
+        let u = 0, v = 0;
+        while (u === 0) u = rng();
+        while (v === 0) v = rng();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+
+    function randomBeta(alpha, beta, rng) {
+        const x = randomGamma(alpha, rng);
+        const y = randomGamma(beta, rng);
+        return x / (x + y);
+    }
+
+    function randomBinomial(n, p, rng) {
+        let count = 0;
+        for (let i = 0; i < n; i++) {
+            if (rng() < p) count++;
+        }
+        return count;
+    }
+
+    function probToHours(p) {
+        return Math.round(p * 14 * 12);
+    }
+
+    // Wilson score interval for binomial proportion
+    function wilsonCI(successes, trials, z = 1.96) {
+        const p = successes / trials;
+        const n = trials;
+        const denom = 1 + z * z / n;
+        const centre = p + z * z / (2 * n);
+        const margin = z * Math.sqrt((p * (1 - p) + z * z / (4 * n)) / n);
+        return {
+            lower: Math.max(0, (centre - margin) / denom),
+            upper: Math.min(1, (centre + margin) / denom)
+        };
+    }
+
+    // Hypergeometric expected value
+    function hypergeometricExpected(K, n, N) {
+        // K = incidents, n = nurse shifts, N = total shifts
+        return (K * n) / N;
+    }
+
+    // === GLOBALS ===
+
+    let currentMode = 'standard';
+    let currentView = 'prosecution';
+    let chartInstance = null;
+    let previewChartInstance = null;
+    let lastSimData = null;
+
+    const presets = {
+        'oquigley': { mean: 0.156, consistency: 20.45 },  // α=3.2, β=17.25 - MLE from O'Quigley (2025) case analysis
+        'standard': { mean: 0.222, consistency: 45 },     // α=10, β=35
+        'agency': { mean: 0.070, consistency: 21.5 },     // α=1.5, β=20
+        'high-acuity': { mean: 0.172, consistency: 14.5 }, // High-acuity ward approximation
+        'custom': null
+    };
+
+    // === DOM REFERENCES ===
+
+    const controls = {
+        simMode: document.getElementById('sim-mode'),
+        shiftLogic: document.getElementById('shift-logic'),
+        seed: document.getElementById('sim-seed'),
+        preset: document.getElementById('preset-select'),
+        mean: document.getElementById('param-mean'),
+        consistency: document.getElementById('param-consistency'),
+        bias: document.getElementById('param-bias'),
+        acuity: document.getElementById('param-acuity'),
+        incidents: document.getElementById('param-incidents'),
+        trials: document.getElementById('param-trials'),
+        pool: document.getElementById('param-pool'),
+        selbias: document.getElementById('param-selbias'),
+        acuityGroup: document.getElementById('acuity-group'),
+        acuityDesc: document.getElementById('acuity-desc'),
+        shiftOptions: document.getElementById('shift-options'),
+        selectionControls: document.getElementById('selection-controls')
+    };
+
+    const displays = {
+        mean: document.getElementById('val-mean'),
+        consistency: document.getElementById('val-consistency'),
+        bias: document.getElementById('val-bias'),
+        acuity: document.getElementById('val-acuity'),
+        incidents: document.getElementById('val-incidents'),
+        trials: document.getElementById('val-trials'),
+        pool: document.getElementById('val-pool'),
+        selbias: document.getElementById('val-selbias'),
+        meanFill: document.getElementById('disp-mean-fill'),
+        maxInnocent: document.getElementById('disp-max-innocent'),
+        suspectFill: document.getElementById('disp-suspect-fill'),
+        prob: document.getElementById('disp-prob'),
+        probCI: document.getElementById('disp-prob-ci'),
+        compExpected: document.getElementById('comp-expected'),
+        compObserved: document.getElementById('comp-observed'),
+        compRatio: document.getElementById('comp-ratio'),
+        compRatioBox: document.getElementById('comp-ratio-box'),
+        mcStat: document.getElementById('mc-stat'),
+        mcPct: document.getElementById('mc-pct'),
+        prosecutionContent: document.getElementById('prosecution-content'),
+        defenceContent: document.getElementById('defence-content')
+    };
+
+    const btnRun = document.getElementById('run-sim');
+    const statusMsg = document.getElementById('status-msg');
+    const ctx = document.getElementById('rosterChart').getContext('2d');
+    const previewCtx = document.getElementById('betaPreview').getContext('2d');
+
+    // === UI FUNCTIONS ===
+
+    window.toggleCollapse = function(id) {
+        const el = document.getElementById(id);
+        el.classList.toggle('open');
+        const icon = el.previousElementSibling.querySelector('.collapse-icon');
+        if (icon) {
+            icon.textContent = el.classList.contains('open') ? '▲' : '▼';
+        }
+    };
+
+    window.switchMode = function(mode) {
+        currentMode = mode;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`[data-tab="${mode}"]`).classList.add('active');
+
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.getElementById(`mode-desc-${mode}`).classList.add('active');
+
+        // Show/hide selection controls
+        controls.selectionControls.style.display = mode === 'selection' ? 'block' : 'none';
+
+        // Update panel visibility based on mode
+        updateModeUI();
+    };
+
+    window.setView = function(view) {
+        currentView = view;
+        document.getElementById('btn-prosecution').className = 'view-btn' + (view === 'prosecution' ? ' active-prosecution' : '');
+        document.getElementById('btn-defence').className = 'view-btn' + (view === 'defence' ? ' active-defence' : '');
+
+        document.getElementById('panel-prosecution').classList.toggle('active', view === 'prosecution');
+        document.getElementById('panel-defence').classList.toggle('active', view === 'defence');
+    };
+
+    function updateModeUI() {
+        const simMechanism = controls.simMode.value;
+
+        controls.shiftOptions.style.display = simMechanism === 'shift' ? 'block' : 'none';
+
+        // Panels that only make sense when a suspect is pre-designated
+        const probPanel = document.getElementById('prob-panel');
+        const mcPanel = document.getElementById('mc-panel');
+        const showSuspectPanels = currentMode !== 'undesignated';
+
+        if (probPanel) probPanel.style.display = showSuspectPanels ? 'flex' : 'none';
+        if (mcPanel) mcPanel.style.display = showSuspectPanels ? 'block' : 'none';
+
+        // Acuity control - only in binomial mode
+        if (simMechanism === 'shift') {
+            controls.acuity.disabled = true;
+            controls.acuityGroup.classList.add('disabled-control');
+            controls.acuityDesc.textContent = "(Available in Binomial mode only)";
+        } else {
+            controls.acuity.disabled = false;
+            controls.acuityGroup.classList.remove('disabled-control');
+            controls.acuityDesc.textContent = "Probability boost for high-risk shifts.";
+        }
+
+        // Advanced Configuration controls - disabled in Selection Effect mode
+        // Selection mode uses its own shift-based mechanism internally
+        const simModeSelect = controls.simMode;
+        const shiftLogicSelect = controls.shiftLogic;
+
+        // Find parent containers - they use 'control-group' class, not 'form-group'
+        // But the selects are inside the collapsible content, so we style them directly
+
+        if (currentMode === 'selection') {
+            // Disable Overlap Mechanism selector
+            simModeSelect.disabled = true;
+            simModeSelect.style.opacity = '0.5';
+            simModeSelect.style.cursor = 'not-allowed';
+            simModeSelect.title = 'Selection Effect mode uses shift-based overlap internally';
+
+            // Disable Shift Count Logic selector
+            shiftLogicSelect.disabled = true;
+            shiftLogicSelect.style.opacity = '0.5';
+            shiftLogicSelect.style.cursor = 'not-allowed';
+            shiftLogicSelect.title = 'Selection Effect mode uses fixed shift totals internally';
+
+            // Show explanatory note if not already present
+            let selectionNote = document.getElementById('selection-mode-note');
+            if (!selectionNote) {
+                selectionNote = document.createElement('p');
+                selectionNote.id = 'selection-mode-note';
+                selectionNote.style.cssText = 'font-size: 0.7rem; color: var(--text-muted); margin-top: 12px; font-style: italic; padding: 8px; background: rgba(210, 153, 34, 0.1); border-radius: 4px; border-left: 3px solid var(--accent-amber);';
+                selectionNote.textContent = 'Selection Effect mode uses shift-based scenario generation with fixed totals internally. These controls apply to Standard and No Pre-designation modes.';
+                const modelConfig = document.getElementById('model-config');
+                if (modelConfig) modelConfig.appendChild(selectionNote);
+            }
+            selectionNote.style.display = 'block';
+        } else {
+            // Re-enable controls
+            simModeSelect.disabled = false;
+            simModeSelect.style.opacity = '1';
+            simModeSelect.style.cursor = 'pointer';
+            simModeSelect.title = '';
+
+            shiftLogicSelect.disabled = false;
+            shiftLogicSelect.style.opacity = '1';
+            shiftLogicSelect.style.cursor = 'pointer';
+            shiftLogicSelect.title = '';
+
+            // Hide note
+            const selectionNote = document.getElementById('selection-mode-note');
+            if (selectionNote) selectionNote.style.display = 'none';
+        }
+    }
+
+    // === EVENT LISTENERS ===
+
+    controls.simMode.addEventListener('change', updateModeUI);
+    controls.shiftLogic.addEventListener('change', updateModeUI);
+
+    controls.preset.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (presets[val]) {
+            controls.mean.value = presets[val].mean;
+            controls.consistency.value = presets[val].consistency;
+            displays.mean.textContent = (presets[val].mean * 100).toFixed(1) + '%';
+            displays.consistency.textContent = presets[val].consistency.toFixed(1);
+            updateBetaPreview();
+        }
+    });
+
+    ['mean', 'consistency'].forEach(key => {
+        controls[key].addEventListener('input', (e) => {
+            controls.preset.value = 'custom';
+            if (key === 'mean') {
+                displays[key].textContent = (parseFloat(e.target.value) * 100).toFixed(1) + '%';
+            } else {
+                displays[key].textContent = parseFloat(e.target.value).toFixed(1);
+            }
+            updateBetaPreview();
+        });
+    });
+
+    controls.bias.addEventListener('input', (e) => {
+        const suspectPct = parseFloat(e.target.value);
+        displays.bias.textContent = suspectPct + "%";
+
+        // Update the info box with hours and ratio
+        const hoursPerWeek = Math.round(suspectPct / 100 * 168);
+        const mean = parseFloat(controls.mean.value);
+        const ratio = (suspectPct / 100 / mean).toFixed(1);
+
+        document.getElementById('suspect-hours-display').textContent = `≈ ${hoursPerWeek} hrs/week`;
+        document.getElementById('suspect-ratio-display').textContent = `${ratio}× ward average`;
+
+        updateBetaPreview();
+    });
+
+    controls.acuity.addEventListener('input', (e) => displays.acuity.textContent = "+" + e.target.value + "%");
+    controls.incidents.addEventListener('input', (e) => {
+        displays.incidents.textContent = e.target.value;
+        // Also update any dynamically created spans with this ID
+        const dynamicSpan = document.querySelector('label span#val-incidents');
+        if (dynamicSpan) dynamicSpan.textContent = e.target.value;
+    });
+    controls.trials.addEventListener('input', (e) => displays.trials.textContent = e.target.value);
+    controls.pool.addEventListener('input', (e) => displays.pool.textContent = e.target.value);
+    controls.selbias.addEventListener('input', (e) => {
+        const pct = parseFloat(e.target.value);
+        const ratio = pct / (100 - pct);
+        if (pct === 50) {
+            displays.selbias.textContent = "50% (1:1)";
+        } else if (pct > 99) {
+            displays.selbias.textContent = `${pct}% (∞:1)`;
+        } else if (pct < 1) {
+            displays.selbias.textContent = `${pct}% (1:∞)`;
+        } else {
+            displays.selbias.textContent = `${pct}% (${ratio.toFixed(1)}:1)`;
+        }
+    });
+
+    // === PREVIEW ===
+
+    // Helper: Convert Mean/Consistency to Alpha/Beta
+    function meanConsistencyToAlphaBeta(mean, consistency) {
+        const alpha = mean * consistency;
+        const beta = (1 - mean) * consistency;
+        return { alpha, beta };
+    }
+
+    function updateBetaPreview() {
+        const mean = parseFloat(controls.mean.value);
+        const consistency = parseFloat(controls.consistency.value);
+        const { alpha, beta } = meanConsistencyToAlphaBeta(mean, consistency);
+        // Now bias is the direct presence rate (e.g., 35 for 35%)
+        const suspectPresenceRate = parseFloat(controls.bias.value) / 100;
+        const nNurses = 38;
+
+        // Use fixed seed for preview consistency (illustrative, not simulation output)
+        const previewRng = mulberry32(42);
+
+        const sampleSize = 1000;
+        let largeSample = new Float32Array(sampleSize);
+        for (let i = 0; i < sampleSize; i++) largeSample[i] = randomBeta(alpha, beta, previewRng);
+        largeSample.sort();
+
+        let probs = [];
+        for (let i = 0; i < (nNurses - 1); i++) {
+            let idx = Math.floor(i * (sampleSize / (nNurses - 1)));
+            probs.push(largeSample[idx]);
+        }
+
+        const sumProbs = probs.reduce((a, b) => a + b, 0);
+        const innocentMean = sumProbs / (nNurses - 1);
+        // Use direct presence rate
+        const suspectProb = Math.min(0.99, suspectPresenceRate);
+        probs.push(suspectProb);
+
+        const dataInnocent = [...probs];
+        dataInnocent[nNurses - 1] = 0;
+        const dataSuspect = new Array(nNurses).fill(0);
+        dataSuspect[nNurses - 1] = suspectProb;
+
+        if (previewChartInstance) previewChartInstance.destroy();
+
+        previewChartInstance = new Chart(previewCtx, {
+            type: 'bar',
+            data: {
+                labels: Array(nNurses).fill(''),
+                datasets: [
+                    { data: dataInnocent, backgroundColor: '#8b949e', barPercentage: 1.0, categoryPercentage: 1.0 },
+                    { data: dataSuspect, backgroundColor: '#f85149', barPercentage: 1.0, categoryPercentage: 1.0 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: {
+                        display: true,
+                        beginAtZero: true,
+                        ticks: {
+                            font: { size: 9 },
+                            color: '#8b949e',
+                            callback: (v) => Math.round(v * 168) + 'h'
+                        },
+                        grid: { color: '#30363d' },
+                        suggestedMax: 0.45
+                    }
+                }
+            }
+        });
+    }
+
+    // === SIMULATION ===
+
+    function runSimulation() {
+        btnRun.disabled = true;
+        statusMsg.style.display = 'block';
+
+        const mode = controls.simMode.value;
+        const shiftLogic = controls.shiftLogic.value;
+
+        let seedVal;
+        const seedInput = controls.seed.value.trim();
+        if (seedInput === "") {
+            // Blank seed => generate fresh random seed each run (don't write back to field)
+            seedVal = Math.floor(Math.random() * 2147483647);
+        } else {
+            seedVal = parseInt(seedInput, 10);
+            if (isNaN(seedVal)) {
+                // Invalid seed => treat as blank (random), clear the invalid input
+                seedVal = Math.floor(Math.random() * 2147483647);
+                controls.seed.value = "";
+            }
+        }
+
+        const rng = mulberry32(seedVal);
+
+        const mean = parseFloat(controls.mean.value);
+        const consistency = parseFloat(controls.consistency.value);
+        const { alpha, beta } = meanConsistencyToAlphaBeta(mean, consistency);
+        // Bias is now the direct presence rate (e.g., 35 means 35% = 0.35)
+        const suspectPresenceRate = parseFloat(controls.bias.value) / 100;
+        const acuityPercent = parseFloat(controls.acuity.value) / 100;
+        const nIncidents = parseInt(controls.incidents.value);
+        const nTrials = parseInt(controls.trials.value);
+        const nNurses = 38;
+        const nShifts = 730;
+
+        // Selection effect parameters
+        let poolSize = parseInt(controls.pool.value);
+        // Ensure pool is at least as large as incidents (auto-bump if needed)
+        if (currentMode === 'selection' && poolSize < nIncidents) {
+            poolSize = nIncidents;
+            controls.pool.value = poolSize;
+            displays.pool.textContent = poolSize;
+        }
+        // Clamp to avoid degenerate weights (0 or 1 causes division issues)
+        const selectionBiasRaw = parseFloat(controls.selbias.value) / 100;
+        const selectionBias = Math.min(0.999, Math.max(0.001, selectionBiasRaw));
+
+        setTimeout(() => {
+            let data;
+
+            if (currentMode === 'selection') {
+                data = executeSelectionEffect(rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta, suspectPresenceRate, poolSize, selectionBias);
+            } else if (currentMode === 'undesignated') {
+                data = executeUndesignated(mode, shiftLogic, rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta);
+            } else {
+                data = executeStandard(mode, shiftLogic, rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta, suspectPresenceRate, acuityPercent);
+            }
+
+            lastSimData = data;
+            updateChart(data);
+            updateStatsPanel(data.meta);
+            updatePresentations(data.meta, data);
+
+            btnRun.disabled = false;
+            statusMsg.style.display = 'none';
+        }, 50);
+    }
+
+    function executeStandard(mode, shiftLogic, rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta, suspectPresenceRate, acuityPercent) {
+        // Compute mean from alpha/beta (this is the ward mean workload)
+        const mean = alpha / (alpha + beta);
+
+        // Generate 37 other nurses
+        let probs = [];
+        for (let i = 0; i < (nNurses - 1); i++) {
+            probs.push(randomBeta(alpha, beta, rng));
+        }
+        probs.sort((a, b) => a - b);
+
+        const sumInnocent = probs.reduce((a, b) => a + b, 0);
+        const innocentMean = sumInnocent / (nNurses - 1);
+        const maxInnocentProb = probs[nNurses - 2];
+        // suspectPresenceRate is now directly the presence probability (e.g., 0.35 for 35%)
+        const suspectBaseProb = Math.min(0.99, suspectPresenceRate);
+        probs.push(suspectBaseProb);
+
+        // Expected overlap for suspect
+        const suspectShifts = Math.round(suspectBaseProb * nShifts);
+        const expectedOverlap = hypergeometricExpected(nIncidents, suspectShifts, nShifts);
+
+        let results = Array(nNurses).fill().map(() => new Int16Array(nTrials));
+        let innocentWinsCount = 0;
+        let suspectOverlapSum = 0;
+
+        let shiftDeck = new Int16Array(nShifts);
+
+        for (let t = 0; t < nTrials; t++) {
+            let incidentSet = new Set();
+            while (incidentSet.size < nIncidents) {
+                incidentSet.add(Math.floor(rng() * nShifts));
+            }
+
+            let currentTrialMaxInnocent = -1;
+            let currentTrialSuspect = -1;
+
+            for (let n = 0; n < nNurses; n++) {
+                let overlapCount = 0;
+                const isSuspect = (n === nNurses - 1);
+                const p = probs[n];
+
+                if (mode === 'binomial') {
+                    let pEff = p;
+                    if (isSuspect) {
+                        pEff = Math.min(0.99, p * (1 + acuityPercent));
+                    }
+                    for (let i = 0; i < nIncidents; i++) {
+                        if (rng() < pEff) overlapCount++;
+                    }
+                } else {
+                    let numShifts;
+                    if (shiftLogic === 'fixed') {
+                        numShifts = Math.round(p * nShifts);
+                    } else {
+                        numShifts = randomBinomial(nShifts, p, rng);
+                    }
+
+                    for (let k = 0; k < nShifts; k++) shiftDeck[k] = k;
+
+                    for (let i = 0; i < numShifts; i++) {
+                        let j = i + Math.floor(rng() * (nShifts - i));
+                        let temp = shiftDeck[i];
+                        shiftDeck[i] = shiftDeck[j];
+                        shiftDeck[j] = temp;
+
+                        if (incidentSet.has(shiftDeck[i])) {
+                            overlapCount++;
+                        }
+                    }
+                }
+
+                results[n][t] = overlapCount;
+
+                if (isSuspect) {
+                    currentTrialSuspect = overlapCount;
+                    suspectOverlapSum += overlapCount;
+                } else {
+                    if (overlapCount > currentTrialMaxInnocent) {
+                        currentTrialMaxInnocent = overlapCount;
+                    }
+                }
+            }
+
+            if (currentTrialMaxInnocent >= currentTrialSuspect) {
+                innocentWinsCount++;
+            }
+        }
+
+        // Aggregate stats
+        let stats = aggregateResults(results, nNurses, nTrials);
+        stats.meta = {
+            meanFill: innocentMean,
+            maxInnocentFill: maxInnocentProb,
+            suspectFill: suspectBaseProb,
+            probInnocentWin: innocentWinsCount / nTrials,
+            innocentWinsCount: innocentWinsCount,
+            nTrials: nTrials,
+            expectedOverlap: expectedOverlap,
+            observedMeanOverlap: suspectOverlapSum / nTrials,
+            suspectShifts: suspectShifts,
+            totalShifts: nShifts,
+            nIncidents: nIncidents,
+            mode: 'standard'
+        };
+
+        return stats;
+    }
+
+    function executeSelectionEffect(rng, nNurses, nShifts, targetIncidents, nTrials, alpha, beta, suspectPresenceRate, poolSize, selectionBias) {
+        // Compute mean from alpha/beta (this is the ward mean workload)
+        const mean = alpha / (alpha + beta);
+
+        // Generate nurses
+        let probs = [];
+        for (let i = 0; i < (nNurses - 1); i++) {
+            probs.push(randomBeta(alpha, beta, rng));
+        }
+        probs.sort((a, b) => a - b);
+
+        const sumInnocent = probs.reduce((a, b) => a + b, 0);
+        const innocentMean = sumInnocent / (nNurses - 1);
+        const maxInnocentProb = probs[nNurses - 2];
+        // Use direct presence rate
+        const suspectBaseProb = Math.min(0.99, suspectPresenceRate);
+        probs.push(suspectBaseProb);
+
+        const suspectShifts = Math.round(suspectBaseProb * nShifts);
+
+        let results = Array(nNurses).fill().map(() => new Int16Array(nTrials));
+        let innocentWinsCount = 0;
+        let suspectOverlapSum = 0;
+
+        let shiftDeck = new Int16Array(nShifts);
+
+        for (let t = 0; t < nTrials; t++) {
+            // Generate larger pool of events
+            let allEvents = new Set();
+            while (allEvents.size < poolSize) {
+                allEvents.add(Math.floor(rng() * nShifts));
+            }
+            let allEventsArr = Array.from(allEvents);
+
+            // Generate suspect's roster for this trial
+            for (let k = 0; k < nShifts; k++) shiftDeck[k] = k;
+            let suspectRoster = new Set();
+            for (let i = 0; i < suspectShifts; i++) {
+                let j = i + Math.floor(rng() * (nShifts - i));
+                let temp = shiftDeck[i];
+                shiftDeck[i] = shiftDeck[j];
+                shiftDeck[j] = temp;
+                suspectRoster.add(shiftDeck[i]);
+            }
+
+            // Weighted sampling without replacement to select exactly targetIncidents
+            // Weight = selectionBias if suspect present, else (1 - selectionBias)
+            let selectedIncidents = new Set();
+            let remainingEvents = [...allEventsArr];
+
+            while (selectedIncidents.size < targetIncidents && remainingEvents.length > 0) {
+                // Compute weights for remaining events
+                let weights = remainingEvents.map(evt =>
+                    suspectRoster.has(evt) ? selectionBias : (1 - selectionBias)
+                );
+                let totalWeight = weights.reduce((a, b) => a + b, 0);
+
+                // Sample one event proportional to weights
+                let r = rng() * totalWeight;
+                let cumulative = 0;
+                let selectedIdx = 0;
+                for (let i = 0; i < weights.length; i++) {
+                    cumulative += weights[i];
+                    if (r <= cumulative) {
+                        selectedIdx = i;
+                        break;
+                    }
+                }
+
+                // Add selected event and remove from pool
+                selectedIncidents.add(remainingEvents[selectedIdx]);
+                remainingEvents.splice(selectedIdx, 1);
+            }
+
+            let currentTrialMaxInnocent = -1;
+            let currentTrialSuspect = -1;
+
+            for (let n = 0; n < nNurses; n++) {
+                let overlapCount = 0;
+                const isSuspect = (n === nNurses - 1);
+                const p = probs[n];
+
+                if (isSuspect) {
+                    // Use pre-generated roster
+                    for (let shift of suspectRoster) {
+                        if (selectedIncidents.has(shift)) overlapCount++;
+                    }
+                } else {
+                    // Generate roster for this nurse
+                    let numShifts = Math.round(p * nShifts);
+                    for (let k = 0; k < nShifts; k++) shiftDeck[k] = k;
+                    for (let i = 0; i < numShifts; i++) {
+                        let j = i + Math.floor(rng() * (nShifts - i));
+                        let temp = shiftDeck[i];
+                        shiftDeck[i] = shiftDeck[j];
+                        shiftDeck[j] = temp;
+                        if (selectedIncidents.has(shiftDeck[i])) overlapCount++;
+                    }
+                }
+
+                results[n][t] = overlapCount;
+
+                if (isSuspect) {
+                    currentTrialSuspect = overlapCount;
+                    suspectOverlapSum += overlapCount;
+                } else {
+                    if (overlapCount > currentTrialMaxInnocent) {
+                        currentTrialMaxInnocent = overlapCount;
+                    }
+                }
+            }
+
+            if (currentTrialMaxInnocent >= currentTrialSuspect) {
+                innocentWinsCount++;
+            }
+        }
+
+        let stats = aggregateResults(results, nNurses, nTrials);
+        const expectedOverlap = hypergeometricExpected(targetIncidents, suspectShifts, nShifts);
+
+        stats.meta = {
+            meanFill: innocentMean,
+            maxInnocentFill: maxInnocentProb,
+            suspectFill: suspectBaseProb,
+            probInnocentWin: innocentWinsCount / nTrials,
+            innocentWinsCount: innocentWinsCount,
+            nTrials: nTrials,
+            expectedOverlap: expectedOverlap,
+            observedMeanOverlap: suspectOverlapSum / nTrials,
+            suspectShifts: suspectShifts,
+            totalShifts: nShifts,
+            nIncidents: targetIncidents,
+            poolSize: poolSize,
+            selectionBias: selectionBias,
+            mode: 'selection'
+        };
+
+        return stats;
+    }
+
+    function executeUndesignated(mode, shiftLogic, rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta) {
+        // All nurses from same distribution - no pre-designated suspect
+        let maxOverlaps = new Int16Array(nTrials);
+        let maxNurseIndices = new Int16Array(nTrials);
+        let results = Array(nNurses).fill().map(() => new Int16Array(nTrials));
+
+        let shiftDeck = new Int16Array(nShifts);
+
+        for (let t = 0; t < nTrials; t++) {
+            // Generate fresh nurse probabilities each trial
+            let probs = [];
+            for (let i = 0; i < nNurses; i++) {
+                probs.push(randomBeta(alpha, beta, rng));
+            }
+            probs.sort((a, b) => a - b);
+
+            // Generate incidents
+            let incidentSet = new Set();
+            while (incidentSet.size < nIncidents) {
+                incidentSet.add(Math.floor(rng() * nShifts));
+            }
+
+            let trialMaxOverlap = -1;
+            let trialMaxNurse = -1;
+
+            for (let n = 0; n < nNurses; n++) {
+                let overlapCount = 0;
+                const p = probs[n];
+
+                if (mode === 'binomial') {
+                    for (let i = 0; i < nIncidents; i++) {
+                        if (rng() < p) overlapCount++;
+                    }
+                } else {
+                    let numShifts;
+                    if (shiftLogic === 'fixed') {
+                        numShifts = Math.round(p * nShifts);
+                    } else {
+                        numShifts = randomBinomial(nShifts, p, rng);
+                    }
+
+                    for (let k = 0; k < nShifts; k++) shiftDeck[k] = k;
+                    for (let i = 0; i < numShifts; i++) {
+                        let j = i + Math.floor(rng() * (nShifts - i));
+                        let temp = shiftDeck[i];
+                        shiftDeck[i] = shiftDeck[j];
+                        shiftDeck[j] = temp;
+                        if (incidentSet.has(shiftDeck[i])) overlapCount++;
+                    }
+                }
+
+                results[n][t] = overlapCount;
+
+                if (overlapCount > trialMaxOverlap) {
+                    trialMaxOverlap = overlapCount;
+                    trialMaxNurse = n;
+                }
+            }
+
+            maxOverlaps[t] = trialMaxOverlap;
+            maxNurseIndices[t] = trialMaxNurse;
+        }
+
+        // Stats on maximum overlaps
+        maxOverlaps.sort();
+        let maxOverlapMean = 0;
+        for (let i = 0; i < nTrials; i++) maxOverlapMean += maxOverlaps[i];
+        maxOverlapMean /= nTrials;
+
+        let stats = aggregateResults(results, nNurses, nTrials);
+
+        // Calculate distribution mean
+        const distMean = alpha / (alpha + beta);
+        const avgShifts = Math.round(distMean * nShifts);
+        const expectedMaxOverlap = hypergeometricExpected(nIncidents, avgShifts, nShifts);
+
+        stats.meta = {
+            meanFill: distMean,
+            maxInnocentFill: distMean,
+            suspectFill: distMean,
+            probInnocentWin: 1.0, // No suspect, so always "innocent wins"
+            innocentWinsCount: nTrials,
+            nTrials: nTrials,
+            expectedOverlap: expectedMaxOverlap,
+            observedMeanOverlap: maxOverlapMean,
+            maxOverlapP50: maxOverlaps[Math.floor(nTrials * 0.5)],
+            maxOverlapP95: maxOverlaps[Math.floor(nTrials * 0.95)],
+            maxOverlapP99: maxOverlaps[Math.floor(nTrials * 0.99)],
+            maxOverlapMax: maxOverlaps[nTrials - 1],
+            suspectShifts: avgShifts,
+            totalShifts: nShifts,
+            nIncidents: nIncidents,
+            mode: 'undesignated'
+        };
+
+        return stats;
+    }
+
+    function aggregateResults(results, nNurses, nTrials) {
+        let stats = {
+            labels: Array.from({length: nNurses}, (_, i) => i + 1),
+            means: [],
+            p05: [],
+            p95: [],
+            p99: [],
+            maxs: []
+        };
+
+        for (let n = 0; n < nNurses; n++) {
+            const nurseData = results[n].sort();
+            let sum = 0;
+            for (let k = 0; k < nTrials; k++) sum += nurseData[k];
+            stats.means.push(sum / nTrials);
+            stats.p05.push(nurseData[Math.floor(nTrials * 0.05)]);
+            stats.p95.push(nurseData[Math.floor(nTrials * 0.95)]);
+            stats.p99.push(nurseData[Math.floor(nTrials * 0.99)]);
+            stats.maxs.push(nurseData[nTrials - 1]);
+        }
+
+        return stats;
+    }
+
+    // === UI UPDATES ===
+
+    function updateStatsPanel(meta) {
+        const meanH = probToHours(meta.meanFill);
+        const maxInnocentH = probToHours(meta.maxInnocentFill);
+        const suspectH = probToHours(meta.suspectFill);
+
+        displays.meanFill.textContent = `${(meta.meanFill * 100).toFixed(1)}% (${meanH}h)`;
+        displays.maxInnocent.textContent = `${(meta.maxInnocentFill * 100).toFixed(1)}% (${maxInnocentH}h)`;
+        displays.suspectFill.textContent = `${(meta.suspectFill * 100).toFixed(1)}% (${suspectH}h)`;
+
+        // Handle undesignated mode: many stats are not applicable
+        const isUndesignated = meta.mode === 'undesignated';
+
+        // P(Max Other >= Suspect) - not applicable in undesignated mode
+        const probPanel = document.getElementById('prob-panel');
+        if (isUndesignated) {
+            displays.prob.textContent = 'N/A';
+            displays.prob.style.color = 'var(--text-muted)';
+            displays.probCI.textContent = 'No suspect specified';
+            probPanel.title = 'In No Pre-designation mode, there is no designated suspect to compare against.';
+        } else {
+            const pct = (meta.probInnocentWin * 100).toFixed(1);
+            displays.prob.textContent = `${pct}%`;
+
+            // CI on probability
+            const ci = wilsonCI(meta.innocentWinsCount, meta.nTrials);
+            displays.probCI.textContent = `95% CI: ${(ci.lower * 100).toFixed(1)}% – ${(ci.upper * 100).toFixed(1)}%`;
+            probPanel.title = 'Tail probability under null hypothesis: how often would an innocent nurse\'s overlap match or exceed the suspect\'s, given workload alone? This is NOT a probability of guilt or innocence.';
+
+            if (meta.probInnocentWin > 0.5) {
+                displays.prob.style.color = '#3fb950';
+            } else if (meta.probInnocentWin > 0.05) {
+                displays.prob.style.color = '#d29922';
+            } else {
+                displays.prob.style.color = '#f85149';
+            }
+        }
+
+        // Expected vs Observed - hide or reframe in undesignated mode
+        const comparisonPanel = document.querySelector('.comparison-panel');
+        if (isUndesignated) {
+            // In undesignated mode, expected vs observed comparison is misleading
+            // because we're comparing average-nurse expectation against max-overlap observation
+            comparisonPanel.style.display = 'none';
+        } else {
+            comparisonPanel.style.display = 'block';
+            displays.compExpected.textContent = meta.expectedOverlap.toFixed(1);
+            displays.compObserved.textContent = meta.observedMeanOverlap.toFixed(1);
+
+            const ratio = meta.observedMeanOverlap / meta.expectedOverlap;
+            displays.compRatio.textContent = ratio.toFixed(2) + '×';
+
+            if (ratio > 1.5) {
+                displays.compRatioBox.classList.add('elevated');
+                displays.compRatioBox.classList.remove('ratio');
+            } else {
+                displays.compRatioBox.classList.remove('elevated');
+                displays.compRatioBox.classList.add('ratio');
+            }
+
+            // Expected vs Observed label - clarify in selection mode
+            const expLabel = document.querySelector('.comparison-item.expected .label');
+            if (meta.mode === 'selection') {
+                expLabel.textContent = 'Expected (if unbiased selection)';
+            } else {
+                expLabel.textContent = 'Expected (Given Hours)';
+            }
+        }
+
+        // Multiple Comparisons panel - different content for undesignated mode
+        const mcPanel = document.getElementById('mc-panel');
+        const mcExplanation = document.getElementById('mc-explanation');
+
+        if (isUndesignated) {
+            displays.mcStat.textContent = `${meta.maxOverlapP50}–${meta.maxOverlapMax}`;
+            displays.mcPct.textContent = '';
+            mcExplanation.innerHTML = `<strong>Distribution of maximum overlap:</strong> Median = ${meta.maxOverlapP50}, P95 = ${meta.maxOverlapP95}, P99 = ${meta.maxOverlapP99}, Max = ${meta.maxOverlapMax}. With 38 nurses, someone will always be the maximum—the question is whether that maximum is unusual given workload.`;
+        } else {
+            const pct = (meta.probInnocentWin * 100).toFixed(1);
+            displays.mcStat.textContent = `${pct}%`;
+            displays.mcPct.textContent = `${pct}%`;
+
+            if (meta.mode === 'selection') {
+                mcExplanation.innerHTML = `In <strong>${pct}%</strong> of simulations, at least one other nurse matched or exceeded the suspect's overlap count (with biased incident selection active).`;
+            } else {
+                mcExplanation.innerHTML = `In <strong>${pct}%</strong> of simulations, at least one other nurse matched or exceeded the suspect's overlap count (i.e., the suspect was not uniquely extreme).`;
+            }
+        }
+    }
+
+    function updatePresentations(meta, stats) {
+        // Store for re-rendering when selector changes
+        window.lastPresentationData = { meta, stats };
+
+        const selectedStat = document.getElementById('stat-selector').value;
+        const suspectIdx = 37; // Nurse 38 (0-indexed)
+
+        // For undesignated mode, we use the max overlap statistics from meta
+        // For other modes, we use nurse 38's individual statistics
+
+        let suspectOverlap, statLabel, statDescription;
+
+        if (meta.mode === 'undesignated') {
+            // In undesignated mode, show statistics about the MAXIMUM overlap distribution
+            switch (selectedStat) {
+                case 'p95':
+                    suspectOverlap = meta.maxOverlapP95;
+                    statLabel = '95th percentile of maximum';
+                    statDescription = '(5% of simulations had a max overlap this high or higher)';
+                    break;
+                case 'p99':
+                    suspectOverlap = meta.maxOverlapP99;
+                    statLabel = '99th percentile of maximum';
+                    statDescription = '(1% of simulations had a max overlap this high or higher)';
+                    break;
+                case 'max':
+                    suspectOverlap = meta.maxOverlapMax;
+                    statLabel = 'maximum of maxima';
+                    statDescription = '(the single most extreme outcome across all simulations)';
+                    break;
+                default: // mean
+                    suspectOverlap = meta.maxOverlapP50; // Using median as representative "typical" max
+                    statLabel = 'median maximum';
+                    statDescription = '(typical maximum overlap in any given trial)';
+            }
+        } else {
+            // Standard and Selection modes - use nurse 38's statistics
+            switch (selectedStat) {
+                case 'p95':
+                    suspectOverlap = stats.p95[suspectIdx];
+                    statLabel = '95th percentile';
+                    statDescription = '(exceeded in only 5% of simulations)';
+                    break;
+                case 'p99':
+                    suspectOverlap = stats.p99[suspectIdx];
+                    statLabel = '99th percentile';
+                    statDescription = '(exceeded in only 1% of simulations)';
+                    break;
+                case 'max':
+                    suspectOverlap = stats.maxs[suspectIdx];
+                    statLabel = 'maximum peak';
+                    statDescription = '(single most extreme outcome observed)';
+                    break;
+                default: // mean
+                    suspectOverlap = stats.means[suspectIdx];
+                    statLabel = 'mean';
+                    statDescription = '(average across all simulations)';
+            }
+        }
+
+        // Format overlap for display: mean gets 1 decimal, order-stats get integer
+        const suspectOverlapDisplay = formatOverlap(suspectOverlap, selectedStat);
+        const suspectPresenceRate = ((suspectOverlap / meta.nIncidents) * 100).toFixed(0);
+        const workloadPct = meta.suspectFill ? (meta.suspectFill * 100).toFixed(0) : '—';
+
+        // ========== PROSECUTION VIEW ==========
+        let prosHtml = '';
+
+        if (meta.mode === 'selection') {
+            prosHtml = `
+                <p>"The defendant was present at an extraordinary <span class="stat-highlight">${suspectPresenceRate}%</span> of the ${meta.nIncidents} incidents relied upon—
+                <span class="stat-highlight">${suspectOverlapDisplay}</span> incidents ${statDescription}. This pattern demands explanation."</p>
+                <p class="method-note"><em>How the figure is obtained:</em> The overlap and presence rate are computed from the scenario generated under the assumptions shown.
+                In <strong>Selection Effect</strong> mode, the incident set is intentionally constructed with selection bias to illustrate how circular evidence can arise.
+                This simulator is a teaching aid, not case evidence.</p>
+            `;
+        } else if (meta.mode === 'undesignated') {
+            prosHtml = `
+                <p>"Consider the <strong>${statLabel}</strong>: the highest overlap reached <span class="stat-highlight">${suspectOverlapDisplay}</span> out of ${meta.nIncidents} incidents ${statDescription}."</p>
+                <p>"A member of staff was present for <span class="stat-highlight">${suspectPresenceRate}%</span> of the incidents. That is far beyond what one would expect by chance alone."</p>
+                <p class="method-note"><em>How the figure is obtained:</em> In <strong>No Pre-designation</strong> mode there is no pre-selected suspect.
+                The displayed overlap is the <em>maximum</em> overlap among all nurses in each trial, summarised by the selected statistic.
+                This simulator is a teaching aid, not case evidence.</p>
+            `;
+        } else {
+            // Standard mode
+            prosHtml = `
+                <p>"The defendant was present at <span class="stat-highlight">${suspectPresenceRate}%</span> of the ${meta.nIncidents} incidents—
+                <span class="stat-highlight">${suspectOverlapDisplay}</span> incidents ${statDescription}. This cannot be dismissed as coincidence."</p>
+                <p>"No other nurse comes close to this pattern of presence. The evidence points to an extraordinary association that calls for an extraordinary explanation."</p>
+                <p class="method-note"><em>How the figure is obtained:</em> The overlap and presence rate come from the model assumptions shown (workload distribution and random incident placement).
+                The simulator estimates how often patterns like this can arise under innocence. It is a teaching aid, not case evidence.</p>
+            `;
+        }
+        displays.prosecutionContent.innerHTML = prosHtml;
+
+        // ========== DEFENCE VIEW ==========
+        let defHtml = '';
+
+        if (meta.mode === 'selection') {
+            defHtml = `
+                <p>"This case suffers from <strong>circular selection bias</strong>. From a larger pool of ${meta.poolSize} concerning events,
+                the ${meta.nIncidents} labelled 'suspicious' were not chosen blind to my client's presence."</p>
+                <p>"The prosecution cites an overlap of <span class="stat-highlight">${suspectOverlapDisplay}</span> incidents (${statLabel}).
+                But the correct question is whether that overlap is unusual once exposure and selection effects are accounted for."</p>
+                <p>"When selection is influenced by presence, higher overlap becomes a predictable artefact of the process—not proof of wrongdoing."</p>
+                <p><strong>Estimated frequency (under the teaching assumptions shown):</strong>
+                <span class="stat-highlight">${(meta.probInnocentWin * 100).toFixed(1)}%</span>
+                of trials produced at least one other nurse matching or exceeding the cited overlap.</p>
+                <p class="method-note"><em>How the figure is obtained:</em> The percentage is a Monte Carlo estimate across ${meta.nTrials} trials under the current settings.
+                In <strong>Selection Effect</strong> mode, the simulator intentionally models ascertainment bias via weighted selection to show how "suspiciousness" can be manufactured.
+                This simulator is a teaching aid, not case evidence.</p>
+            `;
+        } else if (meta.mode === 'undesignated') {
+            defHtml = `
+                <p>"The prosecution points to an overlap of <span class="stat-highlight">${suspectOverlapDisplay}</span> incidents as proof of guilt.
+                But what is being shown here is the <strong>${statLabel}</strong> of the <em>highest</em> overlap—by definition an extreme outcome."</p>
+                <p>"With 38 nurses, <em>someone</em> will always have the maximum overlap. The question is not 'did someone have high overlap?'
+                It is 'is that overlap unusual once workload is taken into account?'"</p>
+                <p>"On this ward model, the typical maximum was <span class="stat-highlight">${meta.maxOverlapP50}</span> incidents.
+                Rare but plausible maxima reached <span class="stat-highlight">${meta.maxOverlapP95}</span> or higher, and the most extreme observed was
+                <span class="stat-highlight">${meta.maxOverlapMax}</span>."</p>
+                <p>"If the prosecution chooses an extreme statistic, the rhetoric becomes dramatic—but the underlying process does not become criminal."</p>
+                <p class="method-note"><em>How the figure is obtained:</em> In <strong>No Pre-designation</strong> mode the simulator records the maximum overlap among all nurses per trial,
+                then reports order statistics (median / P95 / P99 / max) over ${meta.nTrials} trials. This simulator is a teaching aid, not case evidence.</p>
+            `;
+        } else {
+            // Standard mode
+            defHtml = `
+                <p>"My client worked <span class="stat-highlight">${workloadPct}%</span> of all shifts—${meta.suspectShifts} of ${meta.totalShifts} total shifts."</p>
+                <p>"The prosecution cites <span class="stat-highlight">${suspectOverlapDisplay}</span> incidents (${statLabel}).
+                But once you account for exposure alone, we would <em>expect</em> overlap with about <span class="stat-highlight">${Math.round(meta.expectedOverlap)}</span> incidents.
+                The issue is not the raw count—it is whether the count exceeds what exposure predicts."</p>
+                <p>"A high-overlap nurse is often simply the high-workload nurse. Without controlling for hours worked and assignment patterns,
+                the prosecution's inference is not statistically sound."</p>
+                <p><strong>Estimated frequency (under the teaching assumptions shown):</strong>
+                <span class="stat-highlight">${(meta.probInnocentWin * 100).toFixed(1)}%</span>
+                of trials produced at least one other nurse matching or exceeding the cited overlap.</p>
+                <p class="method-note"><em>How the figure is obtained:</em> The percentage is a Monte Carlo estimate across ${meta.nTrials} trials under the current settings.
+                It answers: "How often does an innocent ward produce a comparable overlap somewhere among the other nurses, given this workload structure?"
+                This simulator is a teaching aid, not case evidence.</p>
+            `;
+        }
+        displays.defenceContent.innerHTML = defHtml;
+    }
+
+    function updateChart(data) {
+        if (chartInstance) chartInstance.destroy();
+
+        const rangeData = data.p05.map((min, i) => [min, data.p95[i]]);
+
+        // In undesignated mode, use workload rank labels instead of "Nurse N"
+        const chartLabels = currentMode === 'undesignated'
+            ? data.labels.map((_, i) => `Rank ${i + 1}`)
+            : data.labels;
+
+        const barColors = data.labels.map((_, i) => {
+            if (currentMode === 'undesignated') return 'rgba(139, 148, 158, 0.6)';
+            if (i === 37) return 'rgba(88, 166, 255, 0.8)';
+            if (i === 36) return 'rgba(63, 185, 80, 0.6)';
+            return 'rgba(139, 148, 158, 0.6)';
+        });
+
+        const borderColors = data.labels.map((_, i) => {
+            if (currentMode === 'undesignated') return 'rgba(139, 148, 158, 1)';
+            if (i === 37) return 'rgba(88, 166, 255, 1)';
+            if (i === 36) return 'rgba(63, 185, 80, 1)';
+            return 'rgba(139, 148, 158, 1)';
+        });
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [
+                    {
+                        label: 'Max Peak',
+                        data: data.maxs,
+                        type: 'scatter',
+                        backgroundColor: '#f85149',
+                        pointStyle: 'rectRot',
+                        pointRadius: 6,
+                        order: 0
+                    },
+                    {
+                        label: '99th Percentile',
+                        data: data.p99,
+                        type: 'scatter',
+                        backgroundColor: '#d29922',
+                        pointStyle: 'triangle',
+                        pointRadius: 5,
+                        order: 1
+                    },
+                    {
+                        label: 'Mean Overlap',
+                        data: data.means,
+                        backgroundColor: barColors,
+                        borderColor: borderColors,
+                        borderWidth: 1,
+                        order: 2
+                    },
+                    {
+                        label: '5th-95th Range',
+                        data: rangeData,
+                        backgroundColor: 'rgba(48, 54, 61, 0.6)',
+                        borderColor: 'rgba(72, 79, 88, 0.8)',
+                        borderWidth: { top: 1, bottom: 1, left: 0, right: 0 },
+                        borderSkipped: false,
+                        barPercentage: 0.6,
+                        order: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 600 },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: currentMode === 'undesignated' ?
+                            'Overlap Distribution (No Pre-designated Suspect)' :
+                            (currentMode === 'selection' ?
+                                'Overlap Distribution (With Selection Bias)' :
+                                'Nurse Roster Incident Pattern Analysis'),
+                        font: { size: 18, family: "'Source Sans 3', sans-serif" },
+                        color: '#c9d1d9'
+                    },
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#21262d',
+                        titleColor: '#f0f6fc',
+                        bodyColor: '#c9d1d9',
+                        borderColor: '#30363d',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.dataset.type === 'scatter') {
+                                    if (context.datasetIndex === 0) return `Max Peak: ${context.raw}`;
+                                    if (context.datasetIndex === 1) return `99th %ile: ${context.raw}`;
+                                }
+                                if (Array.isArray(context.raw)) return `Range (5-95%): ${context.raw[0]} – ${context.raw[1]}`;
+                                return `Mean: ${context.raw.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Incidents Witnessed',
+                            color: '#8b949e'
+                        },
+                        ticks: { color: '#8b949e' },
+                        grid: {
+                            color: 'rgba(139, 148, 158, 0.15)',
+                            lineWidth: 1.2
+                        },
+                        suggestedMax: parseInt(controls.incidents.value)
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: currentMode === 'undesignated'
+                                ? 'Workload Rank (lowest → highest)'
+                                : 'Nurses (Sorted by Shift Volume)',
+                            color: '#8b949e'
+                        },
+                        ticks: { color: '#8b949e' },
+                        grid: {
+                            color: 'rgba(139, 148, 158, 0.1)',
+                            lineWidth: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // === INIT ===
+
+    updateModeUI();
+    btnRun.addEventListener('click', runSimulation);
+    updateBetaPreview();
+
+    // Initialize the suspect info box
+    (function initSuspectInfo() {
+        const suspectPct = parseFloat(controls.bias.value);
+        const hoursPerWeek = Math.round(suspectPct / 100 * 168);
+        const mean = parseFloat(controls.mean.value);
+        const ratio = (suspectPct / 100 / mean).toFixed(1);
+        document.getElementById('suspect-hours-display').textContent = `≈ ${hoursPerWeek} hrs/week`;
+        document.getElementById('suspect-ratio-display').textContent = `${ratio}× ward average`;
+    })();
+
+    // Statistic selector for prosecution/defence presentations
+    document.getElementById('stat-selector').addEventListener('change', function() {
+        if (window.lastPresentationData) {
+            updatePresentations(window.lastPresentationData.meta, window.lastPresentationData.stats);
+        }
+    });
+
+    // Autostart simulation on load
+    runSimulation();
+</script>
+
+</body>
+</html>
