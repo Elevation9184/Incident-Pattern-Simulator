@@ -1,10 +1,12 @@
-# Incident Pattern Simulator
-
+# Incident Pattern Simulator + Incident Overlap 3D Explorer
 **The statistics of being in the wrong place at the wrong time**
 
 *Beta Release*
 
-An interactive simulator exploring the statistical foundations of "incident overlap" evidence in healthcare settings. Built as a pedagogical tool to help lawyers, journalists, statisticians, and the public understand why a nurse present at many incidents isn't necessarily evidence of wrongdoing.
+Two complementary interactive tools exploring the statistical foundations of "incident overlap" evidence in healthcare settings. Built as a pedagogical resource to help lawyers, journalists, statisticians, and the public understand why a nurse present at many incidents isn't necessarily evidence of wrongdoing.
+
+- **Incident Overlap 3D Explorer** (`incident_overlap_3D_explorer.html`) — null “landscape” overview (Mean/Q95/Q99)
+- **Incident Pattern Simulator** (`Incident_Pattern_Simulator.html`) — detailed single-scenario analysis
 
 ## The Core Problem
 
@@ -21,9 +23,9 @@ The simulator runs thousands of Monte Carlo trials where:
 
 ## Try It
 
-**[Launch the Pattern Simulator](Incident_Pattern_Simulator.html)** — Explore individual scenarios
+**[Launch the Incident Overlap 3D Explorer](incident_overlap_3D_explorer.html)** — Explore the null overlap landscape (3D surfaces)
 
-**[Launch the Overlap Tracker](incident_overlap_tracker.html)** — Explore the statistical manifold
+**[Launch the Incident Pattern Simulator](Incident_Pattern_Simulator.html)** — Explore individual scenarios
 
 ![Monte Carlo Manifold Surfaces](manifold_3d_surfaces_R5000_ensemble_rosters.png) 
 
@@ -42,19 +44,21 @@ The simulator runs thousands of Monte Carlo trials where:
 - **Hypergeometric distribution** for exact shift-based overlap
 - **Beta-binomial workload model** with intuitive Mean/Consistency parameters
 - **Monte Carlo confidence intervals** for key statistics
-- **3D manifold surfaces** from 5,000 trials per (M, p̄) grid cell
+- **3D surfaces (“manifold”)** from 5,000 trials per (M, p̄) grid cell
 - Ward staffing presets including parameters from O'Quigley (2025)
 
-### Overlap Manifold Explorer
+### Incident Overlap 3D Explorer (the “manifold”)
 
 Interactive 3D visualisation of how maximum incident overlap scales under the null hypothesis:
 
 - **Three statistical surfaces:** Mean, Q95, Q99 percentiles across 5,000 Monte Carlo trials per grid point
 - **Two-parameter exploration:** Number of incidents (M) vs mean shift density (p̄)
-- **Real-time interpolation:** Drag the intercept marker to query any point on the manifold
+- **Real-time interpolation:** Drag the intercept marker to query any point on the surfaces
 - **Grounded baselines:** What overlap counts are expected by chance alone?
 
-The manifold data can be regenerated using `incident_overlap_generator.py` with custom parameters.
+Terminology note: the documentation mostly says “surfaces”; the export artefacts use “manifold”. Here, “manifold” just means the set of three surfaces (Mean/Q95/Q99) over the (M, p̄) grid.
+
+The surface/manifold data can be regenerated using `incident_overlap_3D_generator.py` with custom parameters.
 
 ### Judicial Commentary
 
@@ -85,9 +89,9 @@ Any application to live cases requires verification by a Chartered Statistician 
 
 ## Documentation
 
-Full technical documentation including mathematical framework, parameter explanations, and interpretation guidance is available in [Incident_Pattern_Simulator.docx](Incident_Pattern_Simulator.docx).
+Full technical documentation including mathematical framework, parameter explanations, and interpretation guidance is available in [Incident_Roster_Analysis.docx](Incident_Roster_Analysis.docx).
 
-The manifold generator source (`incident_overlap_generator.py`) includes detailed inline documentation of the Monte Carlo methodology.
+The surface generator source (`incident_overlap_3D_generator.py`) includes detailed inline documentation of the Monte Carlo methodology.
 
 ## Licence
 

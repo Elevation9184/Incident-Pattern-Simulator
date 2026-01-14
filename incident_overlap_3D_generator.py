@@ -21,7 +21,7 @@ Dependencies:
   - numba
 
 Run:
-  python shift_surface_analysis.py
+  python incident_overlap_3D_generator.py
 
 Notes:
   - We implement Beta(a,b) via Gamma draws (Numba-friendly).
@@ -599,8 +599,7 @@ def export_manifold_json(
 
     out_dir = os.getcwd()
     mode = _mode_tag(cfg)
-    ts = time.strftime("%Y%m%d_%H%M%S")
-    fname = f"{cfg.export_json_stem}_{mode}_R{cfg.R}_{ts}.json"
+    fname = f"{cfg.export_json_stem}_{mode}_R{cfg.R}.json"
     path = os.path.join(out_dir, fname)
 
     pack = {
