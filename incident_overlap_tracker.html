@@ -1,0 +1,1479 @@
+<!doctype html>
+<html lang="en">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Incident–Roster Overlap Manifold</title>
+
+  <!-- Google Fonts: JetBrains Mono for data, DM Sans for UI -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      /* Light theme matching matplotlib output */
+      --bg-deep: #ffffff;
+      --bg-panel: rgba(232, 232, 232, 0.95);
+      --bg-panel-hover: rgba(240, 240, 240, 0.98);
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      --border-glow: rgba(107, 158, 255, 0.25);
+
+      --text-primary: rgba(0, 0, 0, 0.88);
+      --text-secondary: rgba(0, 0, 0, 0.60);
+      --text-muted: rgba(0, 0, 0, 0.40);
+
+      /* Surface colors - matching matplotlib */
+      --color-mean: #7aaaff;
+      --color-q95: #ffb45a;
+      --color-q99: #78ffaa;
+
+      /* Glow variants */
+      --glow-mean: rgba(122, 170, 255, 0.5);
+      --glow-q95: rgba(255, 180, 90, 0.5);
+      --glow-q99: rgba(120, 255, 170, 0.5);
+
+      /* Typography */
+      --font-display: 'Instrument Serif', Georgia, serif;
+      --font-ui: 'DM Sans', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+      /* Spacing */
+      --space-xs: 4px;
+      --space-sm: 8px;
+      --space-md: 16px;
+      --space-lg: 24px;
+      --space-xl: 32px;
+
+      /* Transitions */
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--font-ui);
+      background: var(--bg-deep);
+      color: var(--text-primary);
+    }
+
+    /* Light background matching matplotlib */
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+    }
+
+    /* Main control panel */
+    #panel {
+      position: absolute;
+      left: var(--space-lg);
+      top: var(--space-lg);
+      width: 380px;
+      max-width: calc(100% - 48px);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: var(--space-lg);
+      box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.08),
+        0 0 0 1px var(--border-subtle),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+
+      /* Entry animation */
+      animation: slideIn 0.8s var(--ease-out-expo) both;
+      animation-delay: 0.2s;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px) translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) translateY(0);
+      }
+    }
+
+    /* Panel header */
+    .panel-header {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+      padding-bottom: var(--space-md);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .panel-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--color-mean) 0%, var(--color-q99) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow:
+        0 4px 12px var(--glow-mean),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .panel-icon svg {
+      width: 24px;
+      height: 24px;
+      color: white;
+    }
+
+    .panel-title-group {
+      flex: 1;
+      min-width: 0;
+    }
+
+    #panel h1 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 400;
+      margin: 0;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+
+    .panel-subtitle {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text-muted);
+      margin-top: 6px;
+      letter-spacing: 0.02em;
+    }
+
+    /* Control rows */
+    .control-section {
+      margin-bottom: var(--space-lg);
+    }
+
+    .control-row {
+      margin-bottom: var(--space-md);
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--space-sm);
+    }
+
+    .control-label .label-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0.01em;
+    }
+
+    .control-label .label-value {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 3px 10px;
+      border-radius: 6px;
+      letter-spacing: -0.02em;
+    }
+
+    .control-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-style: italic;
+    }
+
+
+    /* Interaction help (mouse) */
+    .interaction-card {
+      margin-top: var(--space-md);
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255,255,255,0.55);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+    }
+
+    .interaction-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .interaction-title .pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(107, 158, 255, 0.18);
+      color: rgba(0,0,0,0.70);
+    }
+
+    .interaction-list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .interaction-list li { margin: 4px 0; }
+
+    .kbd-inline {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.7);
+      color: rgba(0,0,0,0.75);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.8);
+      white-space: nowrap;
+    }
+
+
+    /* Range sliders (polished) */
+    input[type="range"].range-slider {
+      --accent: rgba(0,0,0,0.70);
+      --pct: 50%;
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 999px;
+      outline: none;
+      cursor: pointer;
+      background:
+        linear-gradient(to right,
+          var(--accent) 0%,
+          var(--accent) var(--pct),
+          rgba(0, 0, 0, 0.10) var(--pct),
+          rgba(0, 0, 0, 0.10) 100%);
+      box-shadow:
+        inset 0 1px 2px rgba(0,0,0,0.08),
+        0 1px 0 rgba(255,255,255,0.65);
+      transition: box-shadow 0.2s ease, filter 0.2s ease;
+    }
+
+    input[type="range"].range-slider:hover {
+      filter: brightness(1.02);
+      box-shadow:
+        inset 0 1px 2px rgba(0,0,0,0.10),
+        0 1px 0 rgba(255,255,255,0.75);
+    }
+
+    input[type="range"].range-slider:focus-visible {
+      box-shadow:
+        inset 0 1px 2px rgba(0,0,0,0.10),
+        0 0 0 4px rgba(107, 158, 255, 0.25),
+        0 1px 0 rgba(255,255,255,0.75);
+    }
+
+    input[type="range"].range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.18);
+      box-shadow:
+        0 6px 14px rgba(0,0,0,0.18),
+        0 1px 2px rgba(0,0,0,0.12);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    input[type="range"].range-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.06);
+      box-shadow:
+        0 10px 18px rgba(0,0,0,0.18),
+        0 2px 3px rgba(0,0,0,0.14);
+    }
+
+    input[type="range"].range-slider::-moz-range-track {
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.10);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+    }
+
+    input[type="range"].range-slider::-moz-range-progress {
+      height: 4px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    input[type="range"].range-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.18);
+      box-shadow:
+        0 6px 14px rgba(0,0,0,0.18),
+        0 1px 2px rgba(0,0,0,0.12);
+    }
+
+    /* Slider accents */
+    .accent-mean { --accent: var(--color-mean); }
+    .accent-q95  { --accent: var(--color-q95); }
+    .accent-q99  { --accent: var(--color-q99); }
+
+
+    /* Intercept readout section */
+    .intercept-section {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 14px;
+      padding: var(--space-md);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .intercept-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-md);
+      padding-bottom: var(--space-sm);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .intercept-crosshair {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .intercept-crosshair svg {
+      width: 14px;
+      height: 14px;
+      color: var(--text-secondary);
+    }
+
+    .intercept-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: 0.02em;
+    }
+
+    .intercept-coords {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    /* Metric rows */
+    .metric-row {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 0.15s ease;
+    }
+
+    .metric-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .metric-row:hover {
+      background: rgba(255, 255, 255, 0.02);
+      margin: 0 -8px;
+      padding-left: 8px;
+      padding-right: 8px;
+      border-radius: 8px;
+    }
+
+    .metric-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      margin-right: 12px;
+      flex-shrink: 0;
+      box-shadow: 0 0 12px var(--dot-glow, transparent);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .metric-row:hover .metric-dot {
+      transform: scale(1.15);
+    }
+
+    .metric-dot.mean {
+      background: var(--color-mean);
+      --dot-glow: var(--glow-mean);
+    }
+
+    .metric-dot.q95 {
+      background: var(--color-q95);
+      --dot-glow: var(--glow-q95);
+    }
+
+    .metric-dot.q99 {
+      background: var(--color-q99);
+      --dot-glow: var(--glow-q99);
+    }
+
+    .metric-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      flex: 1;
+    }
+
+    .metric-value {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    /* Meta info */
+    .meta-info {
+      margin-top: var(--space-md);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .meta-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+      line-height: 1.6;
+    }
+
+    .meta-badge {
+      display: inline-block;
+      background: rgba(120, 255, 170, 0.2);
+      color: #2a9d5c;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    /* Status indicator */
+    #status {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-top: var(--space-md);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2a9d5c;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-dot.loading {
+      background: #d97a1e;
+      animation: pulse 0.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    /* Footer hint panel */
+    #hint {
+      position: absolute;
+      right: var(--space-lg);
+      bottom: var(--space-lg);
+      max-width: 400px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: var(--space-md) var(--space-lg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+
+      animation: slideIn 0.8s var(--ease-out-expo) both;
+      animation-delay: 0.4s;
+    }
+
+    .hint-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: var(--space-sm);
+    }
+
+    .hint-content {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .hint-content kbd {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-primary);
+      margin: 0 2px;
+    }
+
+    /* Title overlay */
+    #title-overlay {
+      position: absolute;
+      top: var(--space-lg);
+      right: var(--space-lg);
+      text-align: right;
+      pointer-events: none;
+
+      animation: fadeIn 1s var(--ease-out-expo) both;
+      animation-delay: 0.6s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .title-main {
+      font-family: var(--font-display);
+      font-size: 42px;
+      font-weight: 400;
+      font-style: italic;
+      color: rgba(0, 0, 0, 0.08);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .title-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: rgba(0, 0, 0, 0.15);
+      margin-top: 8px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Legend floating panel */
+    #legend-float {
+      position: absolute;
+      left: var(--space-lg);
+      bottom: var(--space-lg);
+      display: flex;
+      gap: var(--space-lg);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 12px 20px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+
+      animation: slideIn 0.8s var(--ease-out-expo) both;
+      animation-delay: 0.5s;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-swatch {
+      width: 24px;
+      height: 4px;
+      border-radius: 2px;
+      opacity: 0.8;
+    }
+
+    .legend-swatch.mean { background: var(--color-mean); }
+    .legend-swatch.q95 { background: var(--color-q95); }
+    .legend-swatch.q99 { background: var(--color-q99); }
+
+    .legend-text {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      #title-overlay {
+        display: none;
+      }
+
+      #legend-float {
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 100px;
+      }
+
+      #hint {
+        left: var(--space-lg);
+        right: var(--space-lg);
+        max-width: none;
+      }
+    }
+
+    @media (max-width: 500px) {
+      #panel {
+        left: var(--space-md);
+        top: var(--space-md);
+        width: calc(100% - 32px);
+        padding: var(--space-md);
+      }
+
+      #legend-float {
+        flex-wrap: wrap;
+        gap: var(--space-sm) var(--space-md);
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- Ambient title -->
+  <div id="title-overlay">
+    <div class="title-main">Neutrality</div>
+    <div class="title-sub">INCIDENT–ROSTER OVERLAP UNDER THE NULL HYPOTHESIS</div>
+  </div>
+
+  <!-- Main control panel -->
+  <div id="panel">
+    <div class="panel-header">
+      <div class="panel-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"/>
+          <path d="M18 9l-5 5-4-4-3 3"/>
+        </svg>
+      </div>
+      <div class="panel-title-group">
+        <h1>Overlap Manifold</h1>
+        <div class="panel-subtitle">Mean / Q95 / Q99 Surfaces</div>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <div class="control-row">
+        <div class="control-label">
+          <span class="label-text">Incidents (M)</span>
+          <span class="label-value" id="mVal">40</span>
+        </div>
+        <input id="mSlider" class="range-slider accent-mean" type="range" min="0" max="7" step="1" value="3" />
+        <div class="control-hint">Snaps to exported grid values</div>
+      </div>
+
+      <div class="control-row">
+        <div class="control-label">
+          <span class="label-text">Mean presence (p̄)</span>
+          <span class="label-value" id="pVal">0.250</span>
+        </div>
+        <input id="pSlider" class="range-slider accent-q99" type="range" min="0" max="1000" step="1" value="300" />
+        <div class="control-hint">Continuous interpolation between grid rows</div>
+      </div>
+    </div>
+
+    <div class="interaction-card">
+      <div class="interaction-title">
+        <span class="pill">Mouse</span>
+        <span>Explore the manifold</span>
+      </div>
+      <ul class="interaction-list">
+        <li><span class="kbd-inline">Drag</span> anywhere to orbit · <span class="kbd-inline">Scroll</span> to zoom</li>
+        <li><span class="kbd-inline">Drag the X</span> on the floor grid to move the intercept (updates the sliders)</li>
+      </ul>
+    </div>
+
+    <div class="intercept-section">
+      <div class="intercept-header">
+        <div class="intercept-crosshair">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+          </svg>
+        </div>
+        <span class="intercept-title">INTERCEPT</span>
+        <span class="intercept-coords" id="interceptCoords">(M=40, p̄=0.250)</span>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric-dot mean"></div>
+        <span class="metric-label">Mean(max)</span>
+        <span class="metric-value" id="valMean">—</span>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric-dot q95"></div>
+        <span class="metric-label">Q95(max)</span>
+        <span class="metric-value" id="valQ95">—</span>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric-dot q99"></div>
+        <span class="metric-label">Q99(max)</span>
+        <span class="metric-value" id="valQ99">—</span>
+      </div>
+    </div>
+
+    <div class="meta-info">
+      <div class="meta-text" id="meta">Loading simulation parameters...</div>
+      <div class="meta-badge" id="modeBadge">—</div>
+    </div>
+
+    <div id="status">
+      <div class="status-dot loading"></div>
+      <span id="statusText">Loading manifold data...</span>
+    </div>
+  </div>
+
+  <!-- Surface legend -->
+  <div id="legend-float">
+    <div class="legend-item">
+      <div class="legend-swatch mean"></div>
+      <span class="legend-text">Mean</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch q95"></div>
+      <span class="legend-text">Q95</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch q99"></div>
+      <span class="legend-text">Q99</span>
+    </div>
+  </div>
+
+  <!-- Controls hint -->
+  <div id="hint">
+    <div class="hint-title">Navigation</div>
+    <div class="hint-content">
+      <kbd>Drag</kbd> to orbit · <kbd>Scroll</kbd> to zoom · <kbd>Drag&nbsp;the&nbsp;X</kbd> to move intercept<br>
+      Sliders show expected max overlap under random assignment.
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  // ---- USER: set your manifold filename here ----
+  const MANIFOLD_URL = "./manifold_pack_ensemble_rosters_R5000_20260112_221657.json";
+
+  import * as THREE from "three";
+  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+  // ---------- DOM refs ----------
+  const mSlider = document.getElementById("mSlider");
+  const pSlider = document.getElementById("pSlider");
+  const mValEl = document.getElementById("mVal");
+  const pValEl = document.getElementById("pVal");
+  const interceptCoordsEl = document.getElementById("interceptCoords");
+  const valMeanEl = document.getElementById("valMean");
+  const valQ95El = document.getElementById("valQ95");
+  const valQ99El = document.getElementById("valQ99");
+  const metaEl = document.getElementById("meta");
+  const modeBadgeEl = document.getElementById("modeBadge");
+  const statusDot = document.querySelector(".status-dot");
+  const statusText = document.getElementById("statusText");
+
+  // ---------- helpers ----------
+  function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+
+
+  function syncSliderFill(el) {
+    const min = Number(el.min || 0);
+    const max = Number(el.max || 100);
+    const val = Number(el.value || 0);
+    const pct = (max === min) ? 0 : ((val - min) / (max - min)) * 100;
+    el.style.setProperty("--pct", `${clamp(pct, 0, 100)}%`);
+  }
+
+
+  function findInterval(grid, x) {
+    const n = grid.length;
+    if (x <= grid[0]) return 0;
+    if (x >= grid[n-1]) return n - 2;
+    let lo = 0, hi = n - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (grid[mid] <= x) lo = mid; else hi = mid;
+    }
+    return lo;
+  }
+
+  function at2D(flat, rows, cols, r, c) {
+    return flat[r * cols + c];
+  }
+
+  function bilinear(gridX, gridY, flat, rows, cols, x, y) {
+    const c0 = findInterval(gridX, x);
+    const r0 = findInterval(gridY, y);
+    const x0 = gridX[c0], x1 = gridX[c0 + 1];
+    const y0 = gridY[r0], y1 = gridY[r0 + 1];
+    const tx = (x1 === x0) ? 0 : (x - x0) / (x1 - x0);
+    const ty = (y1 === y0) ? 0 : (y - y0) / (y1 - y0);
+
+    const z00 = at2D(flat, rows, cols, r0,     c0);
+    const z10 = at2D(flat, rows, cols, r0,     c0 + 1);
+    const z01 = at2D(flat, rows, cols, r0 + 1, c0);
+    const z11 = at2D(flat, rows, cols, r0 + 1, c0 + 1);
+
+    const z0 = z00 * (1 - tx) + z10 * tx;
+    const z1 = z01 * (1 - tx) + z11 * tx;
+    return z0 * (1 - ty) + z1 * ty;
+  }
+
+  function buildSurfaceGeometry(gridX, gridY, flat, rows, cols, scale) {
+    const positions = new Float32Array(rows * cols * 3);
+    const xMin = gridX[0], xMax = gridX[cols - 1];
+    const yMin = gridY[0], yMax = gridY[rows - 1];
+    const xSpan = xMax - xMin;
+    const ySpan = yMax - yMin;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const idx = (r * cols + c) * 3;
+        const x = (gridX[c] - xMin) / xSpan - 0.5;
+        const y = (gridY[r] - yMin) / ySpan - 0.5;
+        const z = flat[r * cols + c] / scale.z;
+
+        positions[idx + 0] = x * scale.baseX;
+        positions[idx + 1] = y * scale.baseY;
+        positions[idx + 2] = z * scale.baseZ;
+      }
+    }
+
+    const indices = [];
+    for (let r = 0; r < rows - 1; r++) {
+      for (let c = 0; c < cols - 1; c++) {
+        const a = r * cols + c;
+        const b = r * cols + (c + 1);
+        const d = (r + 1) * cols + c;
+        const e = (r + 1) * cols + (c + 1);
+        indices.push(a, b, d);
+        indices.push(b, e, d);
+      }
+    }
+
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geom.setIndex(indices);
+    geom.computeVertexNormals();
+    return { geom, xMin, xMax, yMin, yMax, xSpan, ySpan };
+  }
+
+  function sceneCoordsFromAxes(M, pbar, zVal, axesInfo, scale) {
+    const { xMin, xSpan, yMin, ySpan } = axesInfo;
+    const x = ((M - xMin) / xSpan - 0.5) * scale.baseX;
+    const y = ((pbar - yMin) / ySpan - 0.5) * scale.baseY;
+    const z = (zVal / scale.z) * scale.baseZ;
+    return new THREE.Vector3(x, y, z);
+  }
+
+  // ---------- Load manifold ----------
+  let manifold;
+  try {
+    const resp = await fetch(MANIFOLD_URL);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    manifold = await resp.json();
+    statusDot.classList.remove("loading");
+    statusText.textContent = "Ready";
+  } catch (e) {
+    statusText.textContent = `Failed: ${e.message}`;
+    throw e;
+  }
+
+  const incidentGrid = manifold.axes.incident_grid;
+  const pGrid = manifold.axes.mean_presence_grid;
+  const [rows, cols] = manifold.axes.shape;
+
+  const meanFlat = manifold.surfaces.mean_max;
+  const q95Flat  = manifold.surfaces.q95_max;
+  const q99Flat  = manifold.surfaces.q99_max;
+
+  const zTop = Math.max(...q99Flat);
+  const scale = { baseX: 12.0, baseY: 8.0, baseZ: 10.0, z: zTop };
+
+  // slider setup
+  mSlider.min = 0;
+  mSlider.max = String(incidentGrid.length - 1);
+  mSlider.step = 1;
+  // Default to M=61 (matching Python intercept_M)
+  const defaultMIndex = incidentGrid.indexOf(61);
+  mSlider.value = String(defaultMIndex >= 0 ? defaultMIndex : Math.floor(incidentGrid.length / 2));
+
+  const pMin = pGrid[0], pMax = pGrid[pGrid.length - 1];
+  pSlider.min = 0;
+  pSlider.max = 1000;
+  pSlider.step = 1;
+  // Default to p̄=0.22 (matching Python intercept_mean_presence)
+  // Formula: sliderValue = ((targetP - pMin) / (pMax - pMin)) * 1000
+  const defaultPbar = 0.22;
+  pSlider.value = String(Math.round(((defaultPbar - pMin) / (pMax - pMin)) * 1000));
+
+  syncSliderFill(mSlider);
+  syncSliderFill(pSlider);
+
+  // meta display
+  const p = manifold.params;
+  metaEl.textContent = `N=${p.N} nurses · S=${p.S} shifts · R=${p.R.toLocaleString()} trials`;
+  modeBadgeEl.textContent = manifold.mode === "ensemble_rosters" ? "ENSEMBLE ROSTERS" : "FIXED ROSTERS";
+
+  // ---------- Three.js scene ----------
+  const app = document.getElementById("app");
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(app.clientWidth, app.clientHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  renderer.setClearColor(0xffffff, 1);
+  app.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xffffff);
+  scene.fog = new THREE.Fog(0xffffff, 40, 100);
+
+  const camera = new THREE.PerspectiveCamera(42, app.clientWidth / app.clientHeight, 0.1, 200);
+
+  // Match matplotlib's default 3D view: elev=30°, azim=-60°
+  // In matplotlib: azim=-60 means 60° clockwise from +x when looking down
+  // elev=30 means 30° above the xy plane
+  // Converting to Three.js camera position:
+  const distance = 32;
+  const elevRad = 30 * Math.PI / 180;  // 30 degrees elevation
+  const azimRad = -50 * Math.PI / 180; // Adjusted azimuth to match Python matplotlib view
+
+  // Spherical to Cartesian (matplotlib convention: z is up, azim measured from +x)
+  const camX = distance * Math.cos(elevRad) * Math.cos(azimRad);
+  const camY = distance * Math.cos(elevRad) * Math.sin(azimRad);
+  const camZ = distance * Math.sin(elevRad);
+
+  camera.position.set(camX, camY, camZ);
+  camera.up.set(0, 0, 1); // Z is up
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.target.set(0, 0, scale.baseZ * 0.4);
+  controls.minDistance = 8;
+  controls.maxDistance = 50;
+
+  // Lights - adjusted for white background
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+  scene.add(ambientLight);
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  keyLight.position.set(10, -15, 20);
+  scene.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0x9dc4ff, 0.25);
+  fillLight.position.set(-10, 10, 5);
+  scene.add(fillLight);
+
+  // Grid box colours
+  const gridPanelColor = 0xe8e8e8;
+  const gridLineColor = 0x999999;
+  const gridOpacity = 0.65;
+  const gridDivisions = 8;
+
+  // Create filled panel with grid lines
+  function createGridPanel(sizeX, sizeY, position, rotation, divisions) {
+    const group = new THREE.Group();
+
+    // Filled background panel
+    const panelGeom = new THREE.PlaneGeometry(sizeX, sizeY);
+    const panelMat = new THREE.MeshBasicMaterial({
+      color: gridPanelColor,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.9
+    });
+    const panel = new THREE.Mesh(panelGeom, panelMat);
+    group.add(panel);
+
+    // Grid lines
+    const lineMat = new THREE.LineBasicMaterial({ color: gridLineColor, transparent: true, opacity: gridOpacity });
+
+    // Lines along X direction
+    for (let i = 0; i <= divisions; i++) {
+      const t = i / divisions - 0.5;
+      const y = t * sizeY;
+      const geom = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-sizeX/2, y, 0.01),
+        new THREE.Vector3(sizeX/2, y, 0.01)
+      ]);
+      group.add(new THREE.Line(geom, lineMat));
+    }
+
+    // Lines along Y direction
+    for (let i = 0; i <= divisions; i++) {
+      const t = i / divisions - 0.5;
+      const x = t * sizeX;
+      const geom = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x, -sizeY/2, 0.01),
+        new THREE.Vector3(x, sizeY/2, 0.01)
+      ]);
+      group.add(new THREE.Line(geom, lineMat));
+    }
+
+    group.position.copy(position);
+    group.rotation.setFromVector3(rotation);
+    return group;
+  }
+
+  // Floor grid (XY plane at z=0)
+  const floorGrid = createGridPanel(scale.baseX, scale.baseY,
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, 0, 0),
+    gridDivisions);
+  scene.add(floorGrid);
+
+  // Back wall grid (XZ plane at y = +baseY/2) - this is the "far" y wall
+  const backWallGrid = createGridPanel(scale.baseX, scale.baseZ,
+    new THREE.Vector3(0, scale.baseY/2, scale.baseZ/2),
+    new THREE.Vector3(Math.PI/2, 0, 0),
+    gridDivisions);
+  scene.add(backWallGrid);
+
+  // Left wall grid (YZ plane at x = -baseX/2) - mean presence vs overlaps plane at M=0
+  const leftWallGrid = createGridPanel(scale.baseY, scale.baseZ,
+    new THREE.Vector3(-scale.baseX/2, 0, scale.baseZ/2),
+    new THREE.Vector3(Math.PI/2, Math.PI/2, 0),
+    gridDivisions);
+  scene.add(leftWallGrid);
+
+  // Axis lines (solid black edges of the box)
+  const axesMat = new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.8 });
+
+  // X axis (along incidents) - bottom front edge (at y = -baseY/2)
+  const xAxisGeom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-scale.baseX/2, -scale.baseY/2, 0),
+    new THREE.Vector3(scale.baseX/2, -scale.baseY/2, 0)
+  ]);
+  scene.add(new THREE.Line(xAxisGeom, axesMat));
+
+  // Y axis (along mean presence) - bottom right edge (at x = +baseX/2)
+  const yAxisGeom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(scale.baseX/2, -scale.baseY/2, 0),
+    new THREE.Vector3(scale.baseX/2, scale.baseY/2, 0)
+  ]);
+  scene.add(new THREE.Line(yAxisGeom, axesMat));
+
+  // Z axis (max overlaps) - right back vertical edge (at x = +baseX/2, y = +baseY/2)
+  const zAxisGeom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(scale.baseX/2, scale.baseY/2, 0),
+    new THREE.Vector3(scale.baseX/2, scale.baseY/2, scale.baseZ)
+  ]);
+  scene.add(new THREE.Line(zAxisGeom, axesMat));
+
+  // ---- Axis labels and tick marks using canvas textures ----
+  function createTextSprite(text, fontSize = 48, color = '#333333') {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 512;
+    canvas.height = 128;
+
+    ctx.fillStyle = color;
+    ctx.font = `${fontSize}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width/2, canvas.height/2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+
+    const spriteMat = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false
+    });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.scale.set(4, 1, 1);
+    sprite.renderOrder = 1000;
+    return sprite;
+  }
+
+  function createTickLabel(text, fontSize = 36) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 128;
+    canvas.height = 64;
+
+    ctx.fillStyle = '#555555';
+    ctx.font = `${fontSize}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width/2, canvas.height/2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+
+    const spriteMat = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false
+    });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.scale.set(1.5, 0.75, 1);
+    sprite.renderOrder = 1000;
+    return sprite;
+  }
+
+  // X-axis label: "Number of incidents (M)" - along front edge (y = -baseY/2), centered
+  const xLabel = createTextSprite('Number of incidents (M)');
+  xLabel.position.set(0, -scale.baseY/2 - 2.0, -0.5);
+  scene.add(xLabel);
+
+  // Y-axis label: "Mean shift density (p̄)" - along front-left edge, visible from front
+  const yLabel = createTextSprite('Mean shift density (p̄)');
+  yLabel.position.set(scale.baseX/2 + 2.5, 0, -0.5);
+  scene.add(yLabel);
+
+  // Replace the label text (the original contains a pasted-encoding artifact) and keep it in front of the grid.
+  yLabel.visible = false;
+  const yLabelFixed = createTextSprite('Mean shift density (p\u0304)');
+  yLabelFixed.position.set(scale.baseX/2 + 2.5, 0, -0.5);
+  scene.add(yLabelFixed);
+
+  // Z-axis label: "Max overlaps (any nurse, per run)" - on the RHS of the back panel (x=max, y=max)
+  const zLabel = createTextSprite('Max overlaps (any nurse)', 40);
+  zLabel.position.set(scale.baseX/2 + 2.3, scale.baseY/2 - 0.2, scale.baseZ/2);
+  scene.add(zLabel);
+
+  // X-axis tick labels (incidents: 10, 20, 30, ... 80) - along front edge
+  const xMin = incidentGrid[0], xMax = incidentGrid[incidentGrid.length - 1];
+  const xSpan = xMax - xMin;
+  for (let m = 10; m <= 80; m += 10) {
+    const tick = createTickLabel(String(m));
+    const xPos = ((m - xMin) / xSpan - 0.5) * scale.baseX;
+    tick.position.set(xPos, -scale.baseY/2 - 0.8, -0.3);
+    scene.add(tick);
+  }
+
+  // Y-axis tick labels (mean presence: 0.10, 0.15, ... 0.40) - along the right base edge (M=max)
+  const yMin = pGrid[0], yMax = pGrid[pGrid.length - 1];
+  const ySpan = yMax - yMin;
+  for (let p = 0.10; p <= 0.40; p += 0.05) {
+    const tick = createTickLabel(p.toFixed(2));
+    const yPos = ((p - yMin) / ySpan - 0.5) * scale.baseY;
+    tick.position.set(scale.baseX/2 + 1.0, yPos, -0.3);
+    scene.add(tick);
+  }
+
+  // Z-axis tick labels (overlaps: 0, 20, 40, 60, 80) - along right-back vertical edge (RHS of back panel)
+  for (let z = 0; z <= 80; z += 20) {
+    const tick = createTickLabel(String(z));
+    const zPos = (z / zTop) * scale.baseZ;
+    tick.position.set(scale.baseX/2 + 0.9, scale.baseY/2 - 0.2, zPos);
+    scene.add(tick);
+  }
+  // Surfaces
+  function makeSurface(flat, colorHex, opacity) {
+    const info = buildSurfaceGeometry(incidentGrid, pGrid, flat, rows, cols, scale);
+    const mat = new THREE.MeshStandardMaterial({
+      color: colorHex,
+      transparent: true,
+      opacity,
+      roughness: 0.35,
+      metalness: 0.1,
+      side: THREE.DoubleSide
+    });
+    const mesh = new THREE.Mesh(info.geom, mat);
+    mesh.position.z = 0;
+    scene.add(mesh);
+    return { mesh, info };
+  }
+
+  const surfMean = makeSurface(meanFlat, 0x7aaaff, 0.55);
+  const surfQ95  = makeSurface(q95Flat,  0xffb45a, 0.45);
+  const surfQ99  = makeSurface(q99Flat,  0x78ffaa, 0.40);
+
+  // Vertical guide line + spheres
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.6 });
+  const lineGeom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0,0,0),
+    new THREE.Vector3(0,0,scale.baseZ)
+  ]);
+  const vLine = new THREE.Line(lineGeom, lineMat);
+  scene.add(vLine);
+
+  function makeSphere(colorHex, glowColor) {
+    const g = new THREE.SphereGeometry(0.22, 32, 32);
+    const m = new THREE.MeshStandardMaterial({
+      color: colorHex,
+      roughness: 0.2,
+      metalness: 0.1,
+      emissive: colorHex,
+      emissiveIntensity: 0.3
+    });
+    const s = new THREE.Mesh(g, m);
+    scene.add(s);
+    return s;
+  }
+
+  const sMean = makeSphere(0x7aaaff);
+  const sQ95  = makeSphere(0xffb45a);
+  const sQ99  = makeSphere(0x78ffaa);
+
+  // Base marker - X shape (matching Python matplotlib marker="x")
+  const xSize = 0.35;  // Half-size of the X
+  const xMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+  const baseMarkerGroup = new THREE.Group();
+
+  // Line 1: diagonal from (-x, -y) to (+x, +y)
+  const xLine1Geom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-xSize, -xSize, 0),
+    new THREE.Vector3(xSize, xSize, 0)
+  ]);
+  baseMarkerGroup.add(new THREE.Line(xLine1Geom, xMat));
+
+  // Line 2: diagonal from (-x, +y) to (+x, -y)
+  const xLine2Geom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-xSize, xSize, 0),
+    new THREE.Vector3(xSize, -xSize, 0)
+  ]);
+  baseMarkerGroup.add(new THREE.Line(xLine2Geom, xMat));
+
+  scene.add(baseMarkerGroup);
+
+  // ------------------------------------------------------------
+  // Plan A: grab-and-drag the base X (mouse) without disrupting orbit
+  // ------------------------------------------------------------
+  // We do *not* raycast the two thin X lines directly (hitbox is fiddly).
+  // Instead, attach an invisible disc to the marker group to act as a pick target.
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  const tmpV3 = new THREE.Vector3();
+  const floorPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // z = 0
+
+  const pickRadius = 0.9; // tweak: larger = easier to grab
+  const pickGeom = new THREE.CircleGeometry(pickRadius, 32);
+  const pickMat = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 0.0,
+    depthWrite: false
+  });
+  const pickDisc = new THREE.Mesh(pickGeom, pickMat);
+  pickDisc.name = "markerPickDisc";
+  baseMarkerGroup.add(pickDisc);
+
+  function setNDCFromEvent(ev) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    ndc.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+    ndc.y = -(((ev.clientY - rect.top) / rect.height) * 2 - 1);
+  }
+
+  function floorHitFromEvent(ev) {
+    setNDCFromEvent(ev);
+    raycaster.setFromCamera(ndc, camera);
+    const hit = raycaster.ray.intersectPlane(floorPlane, tmpV3);
+    return hit ? tmpV3.clone() : null;
+  }
+
+  function dataCoordsFromSceneXY(xScene, yScene, axesInfo) {
+    const { xMin, xSpan, yMin, ySpan } = axesInfo;
+    const u = (xScene / scale.baseX) + 0.5; // 0..1
+    const v = (yScene / scale.baseY) + 0.5; // 0..1
+    const M = xMin + clamp(u, 0, 1) * xSpan;
+    const pbar = yMin + clamp(v, 0, 1) * ySpan;
+    return { M, pbar };
+  }
+
+  function nearestIncidentIndex(M) {
+    const i = findInterval(incidentGrid, M);
+    const a = incidentGrid[i];
+    const b = incidentGrid[i + 1];
+    return (Math.abs(M - a) <= Math.abs(M - b)) ? i : (i + 1);
+  }
+
+  function setSlidersFromData(M, pbar) {
+    // Snap M to the nearest grid point (slider is indexed)
+    const mi = nearestIncidentIndex(M);
+    mSlider.value = String(mi);
+
+    // Continuous pbar
+    const t = (pbar - pMin) / (pMax - pMin);
+    pSlider.value = String(Math.round(clamp(t, 0, 1) * 1000));
+
+    updateInterceptAndLegend();
+  }
+
+  let draggingMarker = false;
+  let activePointerId = null;
+
+  renderer.domElement.addEventListener("pointerdown", (ev) => {
+    // Only left-button: if we hit the pick disc, enter marker drag mode.
+    if (ev.button !== 0) return;
+
+    setNDCFromEvent(ev);
+    raycaster.setFromCamera(ndc, camera);
+    const hits = raycaster.intersectObject(pickDisc, true);
+    if (!hits.length) return; // not grabbing marker -> OrbitControls continues normally
+
+    // Prevent OrbitControls from also treating this as a rotate gesture
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const hit = floorHitFromEvent(ev);
+    if (!hit) return;
+
+    draggingMarker = true;
+    activePointerId = ev.pointerId;
+    controls.enabled = false;
+
+    const axesInfo = surfMean.info;
+    const { M, pbar } = dataCoordsFromSceneXY(hit.x, hit.y, axesInfo);
+    setSlidersFromData(M, pbar);
+
+    renderer.domElement.setPointerCapture(ev.pointerId);
+  });
+
+  renderer.domElement.addEventListener("pointermove", (ev) => {
+    if (!draggingMarker || ev.pointerId !== activePointerId) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const hit = floorHitFromEvent(ev);
+    if (!hit) return;
+
+    const axesInfo = surfMean.info;
+    const { M, pbar } = dataCoordsFromSceneXY(hit.x, hit.y, axesInfo);
+    setSlidersFromData(M, pbar);
+  });
+
+  function endMarkerDrag(ev) {
+    if (ev.pointerId !== activePointerId) return;
+    draggingMarker = false;
+    activePointerId = null;
+    controls.enabled = true;
+  }
+  renderer.domElement.addEventListener("pointerup", endMarkerDrag);
+  renderer.domElement.addEventListener("pointercancel", endMarkerDrag);
+
+  // Update functions
+  function currentM() {
+    const idx = parseInt(mSlider.value, 10);
+    return incidentGrid[idx];
+  }
+
+  function currentP() {
+    const t = parseInt(pSlider.value, 10) / 1000;
+    return pMin + t * (pMax - pMin);
+  }
+
+  function updateInterceptAndLegend() {
+    const M = currentM();
+    const pbar = currentP();
+
+    const zMean = bilinear(incidentGrid, pGrid, meanFlat, rows, cols, M, pbar);
+    const zQ95  = bilinear(incidentGrid, pGrid, q95Flat,  rows, cols, M, pbar);
+    const zQ99  = bilinear(incidentGrid, pGrid, q99Flat,  rows, cols, M, pbar);
+
+    mValEl.textContent = `${M}`;
+    pValEl.textContent = `${pbar.toFixed(3)}`;
+    interceptCoordsEl.textContent = `(M=${M}, p̄=${pbar.toFixed(3)})`;
+
+    syncSliderFill(mSlider);
+    syncSliderFill(pSlider);
+
+    const q95Disp = Math.ceil(zQ95);
+    const q99Disp = Math.ceil(zQ99);
+
+    valMeanEl.textContent = zMean.toFixed(2);
+    valQ95El.textContent = q95Disp;
+    valQ99El.textContent = q99Disp;
+
+    // Move guide line and spheres
+    const axesInfo = surfMean.info;
+    const basePt = sceneCoordsFromAxes(M, pbar, 0, axesInfo, scale);
+    baseMarkerGroup.position.copy(basePt);
+
+    const topZ = scale.baseZ;
+    const linePos = vLine.geometry.attributes.position;
+    linePos.setXYZ(0, basePt.x, basePt.y, 0);
+    linePos.setXYZ(1, basePt.x, basePt.y, topZ);
+    linePos.needsUpdate = true;
+
+    sMean.position.copy(sceneCoordsFromAxes(M, pbar, zMean, axesInfo, scale));
+    sQ95.position.copy(sceneCoordsFromAxes(M, pbar, q95Disp, axesInfo, scale));
+    sQ99.position.copy(sceneCoordsFromAxes(M, pbar, q99Disp, axesInfo, scale));
+  }
+
+  mSlider.addEventListener("input", updateInterceptAndLegend);
+  pSlider.addEventListener("input", updateInterceptAndLegend);
+
+  updateInterceptAndLegend();
+
+  function onResize() {
+    const w = app.clientWidth, h = app.clientHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", onResize);
+
+  // Animation loop with subtle sphere animation
+  let time = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    time += 0.016;
+
+    // Subtle breathing effect on spheres
+    const breathe = 1 + Math.sin(time * 2) * 0.05;
+    sMean.scale.setScalar(breathe);
+    sQ95.scale.setScalar(breathe);
+    sQ99.scale.setScalar(breathe);
+
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
+</html>

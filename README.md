@@ -21,7 +21,11 @@ The simulator runs thousands of Monte Carlo trials where:
 
 ## Try It
 
-**[Launch the Simulator](Incident_Pattern_Simulator.html)** 
+**[Launch the Pattern Simulator](Incident_Pattern_Simulator.html)** — Explore individual scenarios
+
+**[Launch the Overlap Tracker](incident_overlap_tracker.html)** — Explore the statistical manifold
+
+![Monte Carlo Manifold Surfaces](manifold_3d_surfaces_R5000_ensemble_rosters.png) 
 
 ## Features
 
@@ -36,9 +40,21 @@ The simulator runs thousands of Monte Carlo trials where:
 ### Statistical Framework
 
 - **Hypergeometric distribution** for exact shift-based overlap
-- **Beta-binomial workload model** with intuitive Mean/Consistency parameters  
+- **Beta-binomial workload model** with intuitive Mean/Consistency parameters
 - **Monte Carlo confidence intervals** for key statistics
+- **3D manifold surfaces** from 5,000 trials per (M, p̄) grid cell
 - Ward staffing presets including parameters from O'Quigley (2025)
+
+### Overlap Manifold Explorer
+
+Interactive 3D visualisation of how maximum incident overlap scales under the null hypothesis:
+
+- **Three statistical surfaces:** Mean, Q95, Q99 percentiles across 5,000 Monte Carlo trials per grid point
+- **Two-parameter exploration:** Number of incidents (M) vs mean shift density (p̄)
+- **Real-time interpolation:** Drag the intercept marker to query any point on the manifold
+- **Grounded baselines:** What overlap counts are expected by chance alone?
+
+The manifold data can be regenerated using `incident_overlap_generator.py` with custom parameters.
 
 ### Judicial Commentary
 
@@ -70,6 +86,8 @@ Any application to live cases requires verification by a Chartered Statistician 
 ## Documentation
 
 Full technical documentation including mathematical framework, parameter explanations, and interpretation guidance is available in [Incident_Pattern_Simulator.docx](Incident_Pattern_Simulator.docx).
+
+The manifold generator source (`incident_overlap_generator.py`) includes detailed inline documentation of the Monte Carlo methodology.
 
 ## Licence
 
