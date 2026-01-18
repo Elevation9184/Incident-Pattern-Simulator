@@ -12,7 +12,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Incident–Roster Overlap Manifold</title>
+  <title>Chance or Guilt? — Incident Overlap Explorer</title>
 
   <!-- Google Fonts: JetBrains Mono for data, DM Sans for UI -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -680,7 +680,7 @@
 <div id="app">
   <!-- Ambient title -->
   <div id="title-overlay">
-    <div class="title-main">Neutrality</div>
+    <div class="title-main">What Neutrality Tells Us</div>
     <div class="title-sub">INCIDENT–ROSTER OVERLAP UNDER THE NULL HYPOTHESIS</div>
   </div>
 
@@ -694,7 +694,7 @@
         </svg>
       </div>
       <div class="panel-title-group">
-        <h1>Overlap Manifold</h1>
+        <h1>Chance or Guilt?</h1>
         <div class="panel-subtitle">Mean / Q95 / Q99 Surfaces</div>
       </div>
     </div>
@@ -712,7 +712,7 @@
       <div class="control-row">
         <div class="control-label">
           <span class="label-text">Mean presence (p̄)</span>
-          <span class="label-value" id="pVal">0.250</span>
+          <span class="label-value" id="pVal">25.0%</span>
         </div>
         <input id="pSlider" class="range-slider accent-q99" type="range" min="0" max="1000" step="1" value="300" />
         <div class="control-hint">Continuous interpolation between grid rows</div>
@@ -739,7 +739,7 @@
           </svg>
         </div>
         <span class="intercept-title">INTERCEPT</span>
-        <span class="intercept-coords" id="interceptCoords">(M=40, p̄=0.250)</span>
+        <span class="intercept-coords" id="interceptCoords">(M=40, p̄=25.0%)</span>
       </div>
 
       <div class="metric-row">
@@ -1176,7 +1176,7 @@
 
   // Replace the label text (the original contains a pasted-encoding artifact) and keep it in front of the grid.
   yLabel.visible = false;
-  const yLabelFixed = createTextSprite('Mean shift density (p\u0304)');
+  const yLabelFixed = createTextSprite('Mean presence (p\u0304) %');
   yLabelFixed.position.set(scale.baseX/2 + 2.5, 0, -0.5);
   scene.add(yLabelFixed);
 
@@ -1195,11 +1195,11 @@
     scene.add(tick);
   }
 
-  // Y-axis tick labels (mean presence: 0.10, 0.15, ... 0.40) - along the right base edge (M=max)
+  // Y-axis tick labels (mean presence: 10%, 15%, ... 40%) - along the right base edge (M=max)
   const yMin = pGrid[0], yMax = pGrid[pGrid.length - 1];
   const ySpan = yMax - yMin;
   for (let p = 0.10; p <= 0.40; p += 0.05) {
-    const tick = createTickLabel(p.toFixed(2));
+    const tick = createTickLabel(`${Math.round(p * 100)}%`);
     const yPos = ((p - yMin) / ySpan - 0.5) * scale.baseY;
     tick.position.set(scale.baseX/2 + 1.0, yPos, -0.3);
     scene.add(tick);
@@ -1229,9 +1229,9 @@
     return { mesh, info };
   }
 
-  const surfMean = makeSurface(meanFlat, 0x7aaaff, 0.55);
-  const surfQ95  = makeSurface(q95Flat,  0xffb45a, 0.45);
-  const surfQ99  = makeSurface(q99Flat,  0x78ffaa, 0.40);
+  const surfMean = makeSurface(meanFlat, 0x7aaaff, 0.35);
+  const surfQ95  = makeSurface(q95Flat,  0xffb45a, 0.30);
+  const surfQ99  = makeSurface(q99Flat,  0x78ffaa, 0.25);
 
   // Vertical guide line + spheres
   const lineMat = new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.6 });
@@ -1416,8 +1416,8 @@
     const zQ99  = bilinear(incidentGrid, pGrid, q99Flat,  rows, cols, M, pbar);
 
     mValEl.textContent = `${M}`;
-    pValEl.textContent = `${pbar.toFixed(3)}`;
-    interceptCoordsEl.textContent = `(M=${M}, p̄=${pbar.toFixed(3)})`;
+    pValEl.textContent = `${(pbar * 100).toFixed(1)}%`;
+    interceptCoordsEl.textContent = `(M=${M}, p̄=${(pbar * 100).toFixed(1)}%)`;
 
     syncSliderFill(mSlider);
     syncSliderFill(pSlider);

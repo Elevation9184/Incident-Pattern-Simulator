@@ -5,7 +5,7 @@
 
 Two complementary interactive tools exploring the statistical foundations of "incident overlap" evidence in healthcare settings. Built as a pedagogical resource to help lawyers, journalists, statisticians, and the public understand why a nurse present at many incidents isn't necessarily evidence of wrongdoing.
 
-- **Incident Overlap 3D Explorer** (`incident_overlap_3D_explorer.html`) — null “landscape” overview (Mean/Q95/Q99)
+- **Incident Overlap 3D Explorer** (`incident_overlap_3D_explorer.html`) — "Chance or Guilt?" null hypothesis landscape (Mean/Q95/Q99)
 - **Incident Pattern Simulator** (`Incident_Pattern_Simulator.html`) — detailed single-scenario analysis
 
 ## The Core Problem
@@ -23,7 +23,7 @@ The simulator runs thousands of Monte Carlo trials where:
 
 ## Try It
 
-**[Launch the Incident Overlap 3D Explorer](incident_overlap_3D_explorer.html)** — Explore the null overlap landscape (3D surfaces)
+**[Launch the Incident Overlap 3D Explorer](incident_overlap_3D_explorer.html)** — "Chance or Guilt?" Explore the null hypothesis landscape
 
 **[Launch the Incident Pattern Simulator](Incident_Pattern_Simulator.html)** — Explore individual scenarios
 
@@ -47,16 +47,16 @@ The simulator runs thousands of Monte Carlo trials where:
 - **3D surfaces (“manifold”)** from 5,000 trials per (M, p̄) grid cell
 - Ward staffing presets including parameters from O'Quigley (2025)
 
-### Incident Overlap 3D Explorer (the “manifold”)
+### Incident Overlap 3D Explorer — "Chance or Guilt?"
 
-Interactive 3D visualisation of how maximum incident overlap scales under the null hypothesis:
+Interactive 3D visualisation titled "Chance or Guilt?" showing how maximum incident overlap scales under the null hypothesis. The provocative title is deliberate: it helps concentrate minds on the core question these statistics address.
 
 - **Three statistical surfaces:** Mean, Q95, Q99 percentiles across 5,000 Monte Carlo trials per grid point
-- **Two-parameter exploration:** Number of incidents (M) vs mean shift density (p̄)
+- **Two-parameter exploration:** Number of incidents (M) vs mean presence (p̄, displayed as %)
 - **Real-time interpolation:** Drag the intercept marker to query any point on the surfaces
 - **Grounded baselines:** What overlap counts are expected by chance alone?
 
-Terminology note: the documentation mostly says “surfaces”; the export artefacts use “manifold”. Here, “manifold” just means the set of three surfaces (Mean/Q95/Q99) over the (M, p̄) grid.
+Terminology note: the documentation mostly says "surfaces"; the export artefacts use "manifold". Here, "manifold" just means the set of three surfaces (Mean/Q95/Q99) over the (M, p̄) grid. Mean presence values are displayed as percentages (e.g., 22% rather than 0.22) for accessibility to non-technical audiences.
 
 The surface/manifold data can be regenerated using `incident_overlap_3D_generator.py` with custom parameters.
 
