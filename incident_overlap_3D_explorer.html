@@ -793,63 +793,89 @@
 
     /* Traffic Light Column */
     .traffic-light-col {
-      width: 140px;
+      width: 160px;
       flex-shrink: 0;
     }
 
     .traffic-light {
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      align-items: flex-start;
+      gap: 10px;
     }
 
-    .traffic-row {
+    /* Traffic light housing - the dark "body" */
+    .traffic-housing {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      padding: 10px 8px;
+      background: #2a2a2a;
+      border-radius: 8px;
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
 
     .traffic-lamp {
-      width: 16px;
-      height: 16px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       flex-shrink: 0;
       transition: opacity 0.3s ease, box-shadow 0.3s ease;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      /* Bezel effect - darker ring around each lamp */
+      border: 3px solid #1a1a1a;
+      box-sizing: border-box;
     }
 
     .traffic-lamp.red {
       background: #e53935;
-      box-shadow: 0 0 8px rgba(229, 57, 53, 0.5);
+      box-shadow:
+        0 0 10px rgba(229, 57, 53, 0.6),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
     }
 
     .traffic-lamp.orange {
       background: #fb8c00;
-      box-shadow: 0 0 8px rgba(251, 140, 0, 0.5);
+      box-shadow:
+        0 0 10px rgba(251, 140, 0, 0.6),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
     }
 
     .traffic-lamp.green {
       background: #43a047;
-      box-shadow: 0 0 8px rgba(67, 160, 71, 0.5);
+      box-shadow:
+        0 0 10px rgba(67, 160, 71, 0.6),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
     }
 
-    .traffic-lamp.dim {
-      opacity: 0.15;
-      box-shadow: none;
+    /* Labels column - to the right of housing */
+    .traffic-labels {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 2px;
+    }
+
+    .traffic-label-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 20px; /* Match lamp height for alignment */
     }
 
     .traffic-label {
-      font-size: 10px;
+      font-size: 9px;
       color: var(--text-secondary);
-      line-height: 1.3;
-      flex: 1;
+      line-height: 1.2;
+      white-space: nowrap;
     }
 
     .traffic-help {
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      background: rgba(0, 0, 0, 0.06);
+      background: rgba(0, 0, 0, 0.08);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -861,7 +887,7 @@
     .traffic-help::before {
       content: '?';
       font-family: var(--font-mono);
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 600;
       color: var(--text-muted);
     }
@@ -871,11 +897,11 @@
       position: absolute;
       bottom: calc(100% + 8px);
       right: -10px;
-      width: 260px;
-      padding: 12px;
+      width: 240px;
+      padding: 10px;
       background: rgba(40, 40, 40, 0.96);
       color: #fff;
-      font-size: 11px;
+      font-size: 10px;
       line-height: 1.5;
       border-radius: 8px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -891,9 +917,9 @@
       content: '';
       position: absolute;
       bottom: -6px;
-      right: 16px;
-      width: 12px;
-      height: 12px;
+      right: 12px;
+      width: 10px;
+      height: 10px;
       background: rgba(40, 40, 40, 0.96);
       transform: rotate(45deg);
     }
@@ -954,6 +980,65 @@
       </div>
     </div>
 
+    <!-- Observed Overlap Section - positioned after sliders for natural workflow -->
+    <div class="observed-section" id="observedSection">
+      <div class="observed-header">
+        <div class="observed-header-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20V10"/>
+            <path d="M18 20V4"/>
+            <path d="M6 20v-4"/>
+          </svg>
+        </div>
+        <span class="observed-header-title">COMPARE OBSERVATION</span>
+      </div>
+      <div class="observed-content">
+        <div class="observed-input-col">
+          <div class="observed-input-label">Observed overlaps</div>
+          <div class="observed-input-wrapper">
+            <input type="number"
+                   id="observedInput"
+                   class="observed-input"
+                   min="0"
+                   step="1"
+                   placeholder="Enter value..."
+                   autocomplete="off">
+          </div>
+          <div class="observed-hint" id="observedHint">Highest overlap count for any individual</div>
+          <div class="observed-warning" id="observedWarning">Observed overlaps cannot exceed total incidents</div>
+        </div>
+        <div class="traffic-light-col">
+          <div class="traffic-light neutral" id="trafficLight">
+            <div class="traffic-housing">
+              <div class="traffic-lamp red" id="lampRed"></div>
+              <div class="traffic-lamp orange" id="lampOrange"></div>
+              <div class="traffic-lamp green" id="lampGreen"></div>
+            </div>
+            <div class="traffic-labels">
+              <div class="traffic-label-row">
+                <span class="traffic-label">Exceeds chance</span>
+                <div class="traffic-help">
+                  <div class="tooltip">This overlap count exceeds what would typically occur under random shift assignment (beyond the 99th percentile). This does not indicate guilt—it indicates that roster-based analysis alone cannot rule out chance, and professional statistical review by a qualified expert (e.g., Royal Statistical Society accredited) is strongly recommended before drawing any conclusions.</div>
+                </div>
+              </div>
+              <div class="traffic-label-row">
+                <span class="traffic-label">Warrants review</span>
+                <div class="traffic-help">
+                  <div class="tooltip">This overlap count is elevated but not extreme. It may warrant internal review to understand rostering patterns, but does not by itself indicate wrongdoing. Consider consulting with departmental leadership.</div>
+                </div>
+              </div>
+              <div class="traffic-label-row">
+                <span class="traffic-label">Within expectation</span>
+                <div class="traffic-help">
+                  <div class="tooltip">The observed overlap count falls within the range expected under random shift assignment. No statistical anomaly is indicated.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="interaction-card">
       <div class="interaction-title">
         <span class="pill">Mouse</span>
@@ -993,61 +1078,6 @@
         <div class="metric-dot q99"></div>
         <span class="metric-label">Q99(max)</span>
         <span class="metric-value" id="valQ99">—</span>
-      </div>
-    </div>
-
-    <!-- Observed Overlap Section -->
-    <div class="observed-section" id="observedSection">
-      <div class="observed-header">
-        <div class="observed-header-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 20V10"/>
-            <path d="M18 20V4"/>
-            <path d="M6 20v-4"/>
-          </svg>
-        </div>
-        <span class="observed-header-title">COMPARE OBSERVATION</span>
-      </div>
-      <div class="observed-content">
-        <div class="observed-input-col">
-          <div class="observed-input-label">Observed overlaps</div>
-          <div class="observed-input-wrapper">
-            <input type="number"
-                   id="observedInput"
-                   class="observed-input"
-                   min="0"
-                   step="1"
-                   placeholder="Enter value..."
-                   autocomplete="off">
-          </div>
-          <div class="observed-hint" id="observedHint">Highest overlap count for any individual</div>
-          <div class="observed-warning" id="observedWarning">Observed overlaps cannot exceed total incidents</div>
-        </div>
-        <div class="traffic-light-col">
-          <div class="traffic-light neutral" id="trafficLight">
-            <div class="traffic-row">
-              <div class="traffic-lamp red" id="lampRed"></div>
-              <span class="traffic-label">Exceeds chance</span>
-              <div class="traffic-help">
-                <div class="tooltip">This overlap count exceeds what would typically occur under random shift assignment (beyond the 99th percentile). This does not indicate guilt—it indicates that roster-based analysis alone cannot rule out chance, and professional statistical review by a qualified expert (e.g., Royal Statistical Society accredited) is strongly recommended before drawing any conclusions.</div>
-              </div>
-            </div>
-            <div class="traffic-row">
-              <div class="traffic-lamp orange" id="lampOrange"></div>
-              <span class="traffic-label">Warrants review</span>
-              <div class="traffic-help">
-                <div class="tooltip">This overlap count is elevated but not extreme. It may warrant internal review to understand rostering patterns, but does not by itself indicate wrongdoing. Consider consulting with departmental leadership.</div>
-              </div>
-            </div>
-            <div class="traffic-row">
-              <div class="traffic-lamp green" id="lampGreen"></div>
-              <span class="traffic-label">Within expectation</span>
-              <div class="traffic-help">
-                <div class="tooltip">The observed overlap count falls within the range expected under random shift assignment. No statistical anomaly is indicated.</div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
