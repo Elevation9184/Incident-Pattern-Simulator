@@ -803,18 +803,18 @@
       gap: 10px;
     }
 
-    /* Traffic light housing - the dark "body" */
+    /* Traffic light housing - the "body" */
     .traffic-housing {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 6px;
       padding: 10px 8px;
-      background: #2a2a2a;
+      background: #505050;
       border-radius: 8px;
       box-shadow:
-        0 2px 8px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        0 2px 8px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
     .traffic-lamp {
@@ -824,29 +824,29 @@
       flex-shrink: 0;
       transition: opacity 0.3s ease, box-shadow 0.3s ease;
       /* Bezel effect - darker ring around each lamp */
-      border: 3px solid #1a1a1a;
+      border: 3px solid #3a3a3a;
       box-sizing: border-box;
     }
 
     .traffic-lamp.red {
-      background: #e53935;
+      background: #ef5350;
       box-shadow:
-        0 0 10px rgba(229, 57, 53, 0.6),
-        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+        0 0 12px rgba(239, 83, 80, 0.7),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.25);
     }
 
     .traffic-lamp.orange {
-      background: #fb8c00;
+      background: #ffa726;
       box-shadow:
-        0 0 10px rgba(251, 140, 0, 0.6),
-        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+        0 0 12px rgba(255, 167, 38, 0.7),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.25);
     }
 
     .traffic-lamp.green {
-      background: #43a047;
+      background: #66bb6a;
       box-shadow:
-        0 0 10px rgba(67, 160, 71, 0.6),
-        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+        0 0 12px rgba(102, 187, 106, 0.7),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.25);
     }
 
     /* Labels column - to the right of housing */
