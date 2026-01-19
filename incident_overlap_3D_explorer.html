@@ -674,6 +674,241 @@
         justify-content: center;
       }
     }
+
+    /* ========== Observed Overlap Section ========== */
+    .observed-section {
+      margin-top: var(--space-lg);
+      padding: var(--space-md);
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 14px;
+      border: 1px solid var(--border-subtle);
+      display: none; /* Hidden until manifold loads */
+    }
+
+    .observed-section.ready {
+      display: block;
+    }
+
+    .observed-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-md);
+      padding-bottom: var(--space-sm);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .observed-header-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .observed-header-icon svg {
+      width: 14px;
+      height: 14px;
+      color: var(--text-secondary);
+    }
+
+    .observed-header-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: 0.02em;
+    }
+
+    .observed-content {
+      display: flex;
+      gap: var(--space-md);
+    }
+
+    .observed-input-col {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .observed-input-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .observed-input-wrapper {
+      position: relative;
+    }
+
+    .observed-input {
+      width: 100%;
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .observed-input:focus {
+      border-color: rgba(107, 158, 255, 0.5);
+      box-shadow: 0 0 0 3px rgba(107, 158, 255, 0.15);
+    }
+
+    .observed-input::placeholder {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .observed-input.warning {
+      border-color: rgba(255, 150, 50, 0.6);
+      box-shadow: 0 0 0 3px rgba(255, 150, 50, 0.15);
+    }
+
+    .observed-hint {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-style: italic;
+    }
+
+    .observed-warning {
+      font-size: 10px;
+      color: #d97a1e;
+      margin-top: 6px;
+      font-weight: 500;
+      display: none;
+    }
+
+    .observed-warning.visible {
+      display: block;
+    }
+
+    /* Traffic Light Column */
+    .traffic-light-col {
+      width: 140px;
+      flex-shrink: 0;
+    }
+
+    .traffic-light {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .traffic-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .traffic-lamp {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: opacity 0.3s ease, box-shadow 0.3s ease;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .traffic-lamp.red {
+      background: #e53935;
+      box-shadow: 0 0 8px rgba(229, 57, 53, 0.5);
+    }
+
+    .traffic-lamp.orange {
+      background: #fb8c00;
+      box-shadow: 0 0 8px rgba(251, 140, 0, 0.5);
+    }
+
+    .traffic-lamp.green {
+      background: #43a047;
+      box-shadow: 0 0 8px rgba(67, 160, 71, 0.5);
+    }
+
+    .traffic-lamp.dim {
+      opacity: 0.15;
+      box-shadow: none;
+    }
+
+    .traffic-label {
+      font-size: 10px;
+      color: var(--text-secondary);
+      line-height: 1.3;
+      flex: 1;
+    }
+
+    .traffic-help {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: help;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .traffic-help::before {
+      content: '?';
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Tooltips */
+    .traffic-help .tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      right: -10px;
+      width: 260px;
+      padding: 12px;
+      background: rgba(40, 40, 40, 0.96);
+      color: #fff;
+      font-size: 11px;
+      line-height: 1.5;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(4px);
+      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .traffic-help .tooltip::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      right: 16px;
+      width: 12px;
+      height: 12px;
+      background: rgba(40, 40, 40, 0.96);
+      transform: rotate(45deg);
+    }
+
+    .traffic-help:hover .tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    /* Neutral state when no value entered */
+    .traffic-light.neutral .traffic-lamp {
+      opacity: 0.15;
+      box-shadow: none;
+    }
   </style>
 </head>
 <body>
@@ -761,6 +996,61 @@
       </div>
     </div>
 
+    <!-- Observed Overlap Section -->
+    <div class="observed-section" id="observedSection">
+      <div class="observed-header">
+        <div class="observed-header-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20V10"/>
+            <path d="M18 20V4"/>
+            <path d="M6 20v-4"/>
+          </svg>
+        </div>
+        <span class="observed-header-title">COMPARE OBSERVATION</span>
+      </div>
+      <div class="observed-content">
+        <div class="observed-input-col">
+          <div class="observed-input-label">Observed overlaps</div>
+          <div class="observed-input-wrapper">
+            <input type="number"
+                   id="observedInput"
+                   class="observed-input"
+                   min="0"
+                   step="1"
+                   placeholder="Enter value..."
+                   autocomplete="off">
+          </div>
+          <div class="observed-hint" id="observedHint">Highest overlap count for any individual</div>
+          <div class="observed-warning" id="observedWarning">Observed overlaps cannot exceed total incidents</div>
+        </div>
+        <div class="traffic-light-col">
+          <div class="traffic-light neutral" id="trafficLight">
+            <div class="traffic-row">
+              <div class="traffic-lamp red" id="lampRed"></div>
+              <span class="traffic-label">Exceeds chance</span>
+              <div class="traffic-help">
+                <div class="tooltip">This overlap count exceeds what would typically occur under random shift assignment (beyond the 99th percentile). This does not indicate guilt—it indicates that roster-based analysis alone cannot rule out chance, and professional statistical review by a qualified expert (e.g., Royal Statistical Society accredited) is strongly recommended before drawing any conclusions.</div>
+              </div>
+            </div>
+            <div class="traffic-row">
+              <div class="traffic-lamp orange" id="lampOrange"></div>
+              <span class="traffic-label">Warrants review</span>
+              <div class="traffic-help">
+                <div class="tooltip">This overlap count is elevated but not extreme. It may warrant internal review to understand rostering patterns, but does not by itself indicate wrongdoing. Consider consulting with departmental leadership.</div>
+              </div>
+            </div>
+            <div class="traffic-row">
+              <div class="traffic-lamp green" id="lampGreen"></div>
+              <span class="traffic-label">Within expectation</span>
+              <div class="traffic-help">
+                <div class="tooltip">The observed overlap count falls within the range expected under random shift assignment. No statistical anomaly is indicated.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="meta-info">
       <div class="meta-text" id="meta">Loading simulation parameters...</div>
       <div class="meta-badge" id="modeBadge">—</div>
@@ -785,6 +1075,10 @@
     <div class="legend-item">
       <div class="legend-swatch q99"></div>
       <span class="legend-text">Q99</span>
+    </div>
+    <div class="legend-item" id="legendObserved" style="display: none;">
+      <div class="legend-swatch" id="legendObservedSwatch" style="background: #888; border-radius: 50%; width: 10px; height: 10px;"></div>
+      <span class="legend-text">Observed</span>
     </div>
   </div>
 
@@ -819,9 +1113,87 @@
   const statusDot = document.querySelector(".status-dot");
   const statusText = document.getElementById("statusText");
 
+  // Observed overlap section DOM refs
+  const observedSection = document.getElementById("observedSection");
+  const observedInput = document.getElementById("observedInput");
+  const observedHint = document.getElementById("observedHint");
+  const observedWarning = document.getElementById("observedWarning");
+  const trafficLight = document.getElementById("trafficLight");
+  const lampRed = document.getElementById("lampRed");
+  const lampOrange = document.getElementById("lampOrange");
+  const lampGreen = document.getElementById("lampGreen");
+  const legendObserved = document.getElementById("legendObserved");
+  const legendObservedSwatch = document.getElementById("legendObservedSwatch");
+
   // ---------- helpers ----------
   function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
 
+  // Smoothstep for visual polish on transitions
+  function smoothstep(edge0, edge1, x) {
+    const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+    return t * t * (3 - 2 * t);
+  }
+
+  // Traffic light calculation: returns { green, orange, red } each in [0, 1]
+  function calculateTrafficLight(obs, mean, q95, q99) {
+    if (obs <= mean) {
+      return { green: 1.0, orange: 0.0, red: 0.0 };
+    } else if (obs <= q95) {
+      // Transition green → orange across mean-to-Q95 range
+      const t = smoothstep(mean, q95, obs);
+      return { green: 1.0 - t, orange: t, red: 0.0 };
+    } else if (obs <= q99) {
+      // Transition orange → red across Q95-to-Q99 range
+      const t = smoothstep(q95, q99, obs);
+      return { green: 0.0, orange: 1.0 - t, red: t };
+    } else {
+      // Above Q99
+      return { green: 0.0, orange: 0.0, red: 1.0 };
+    }
+  }
+
+  // Apply traffic light state to DOM with continuous opacity
+  function applyTrafficLight(state) {
+    const minOpacity = 0.15;  // Dim but visible when "off"
+    const maxOpacity = 1.0;
+
+    // Calculate opacities with smooth interpolation
+    const greenOp = minOpacity + (maxOpacity - minOpacity) * state.green;
+    const orangeOp = minOpacity + (maxOpacity - minOpacity) * state.orange;
+    const redOp = minOpacity + (maxOpacity - minOpacity) * state.red;
+
+    // Apply to lamps
+    lampGreen.style.opacity = greenOp;
+    lampOrange.style.opacity = orangeOp;
+    lampRed.style.opacity = redOp;
+
+    // Glow effect scales with intensity
+    const glowGreen = state.green > 0.5 ? `0 0 ${8 * state.green}px rgba(67, 160, 71, ${0.5 * state.green})` : 'none';
+    const glowOrange = state.orange > 0.5 ? `0 0 ${8 * state.orange}px rgba(251, 140, 0, ${0.5 * state.orange})` : 'none';
+    const glowRed = state.red > 0.5 ? `0 0 ${8 * state.red}px rgba(229, 57, 53, ${0.5 * state.red})` : 'none';
+
+    lampGreen.style.boxShadow = glowGreen;
+    lampOrange.style.boxShadow = glowOrange;
+    lampRed.style.boxShadow = glowRed;
+  }
+
+  // Get interpolated color for observed sphere based on traffic light state
+  function getObservedColor(state) {
+    // RGB values for traffic light colors
+    const green = { r: 67, g: 160, b: 71 };
+    const orange = { r: 251, g: 140, b: 0 };
+    const red = { r: 229, g: 57, b: 53 };
+
+    // Weighted blend
+    const total = state.green + state.orange + state.red;
+    if (total === 0) return 0x888888; // fallback gray
+
+    const r = Math.round((green.r * state.green + orange.r * state.orange + red.r * state.red) / total);
+    const g = Math.round((green.g * state.green + orange.g * state.orange + red.g * state.red) / total);
+    const b = Math.round((green.b * state.green + orange.b * state.orange + red.b * state.red) / total);
+
+    return (r << 16) | (g << 8) | b;
+  }
 
   function syncSliderFill(el) {
     const min = Number(el.min || 0);
@@ -921,6 +1293,8 @@
     manifold = await resp.json();
     statusDot.classList.remove("loading");
     statusText.textContent = "Ready";
+    // Show the observed overlap section now that data is loaded
+    observedSection.classList.add("ready");
   } catch (e) {
     statusText.textContent = `Failed: ${e.message}`;
     throw e;
@@ -1260,6 +1634,22 @@
   const sQ95  = makeSphere(0xffb45a);
   const sQ99  = makeSphere(0x78ffaa);
 
+  // Observed value sphere (initially hidden, larger and with distinct style)
+  const sObserved = (() => {
+    const g = new THREE.SphereGeometry(0.28, 32, 32);
+    const m = new THREE.MeshStandardMaterial({
+      color: 0x888888,
+      roughness: 0.15,
+      metalness: 0.2,
+      emissive: 0x888888,
+      emissiveIntensity: 0.4
+    });
+    const s = new THREE.Mesh(g, m);
+    s.visible = false;  // Hidden until user enters a value
+    scene.add(s);
+    return s;
+  })();
+
   // Base marker - X shape (matching Python matplotlib marker="x")
   const xSize = 0.35;  // Half-size of the X
   const xMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
@@ -1443,7 +1833,84 @@
     sMean.position.copy(sceneCoordsFromAxes(M, pbar, zMean, axesInfo, scale));
     sQ95.position.copy(sceneCoordsFromAxes(M, pbar, q95Disp, axesInfo, scale));
     sQ99.position.copy(sceneCoordsFromAxes(M, pbar, q99Disp, axesInfo, scale));
+
+    // Update observed overlap section
+    updateObservedOverlap(M, zMean, q95Disp, q99Disp, axesInfo, pbar);
   }
+
+  // Handle observed overlap input and traffic light
+  function updateObservedOverlap(M, mean, q95, q99, axesInfo, pbar) {
+    // Update max value hint
+    observedInput.max = M;
+
+    const rawValue = observedInput.value.trim();
+    const obs = parseInt(rawValue, 10);
+
+    // Handle empty/invalid input
+    if (rawValue === '' || isNaN(obs)) {
+      trafficLight.classList.add('neutral');
+      sObserved.visible = false;
+      legendObserved.style.display = 'none';
+      observedWarning.classList.remove('visible');
+      observedInput.classList.remove('warning');
+      return;
+    }
+
+    trafficLight.classList.remove('neutral');
+
+    // Handle value exceeding M
+    if (obs > M) {
+      observedWarning.classList.add('visible');
+      observedInput.classList.add('warning');
+      // Still show traffic light but clamped
+      const clampedObs = M;
+      const state = calculateTrafficLight(clampedObs, mean, q95, q99);
+      applyTrafficLight(state);
+      // Position sphere at M (clamped)
+      sObserved.visible = true;
+      sObserved.position.copy(sceneCoordsFromAxes(currentM(), pbar, clampedObs, axesInfo, scale));
+      const color = getObservedColor(state);
+      sObserved.material.color.setHex(color);
+      sObserved.material.emissive.setHex(color);
+      // Update legend
+      legendObserved.style.display = 'flex';
+      legendObservedSwatch.style.background = `#${color.toString(16).padStart(6, '0')}`;
+      return;
+    }
+
+    // Valid input
+    observedWarning.classList.remove('visible');
+    observedInput.classList.remove('warning');
+
+    // Calculate and apply traffic light
+    const state = calculateTrafficLight(obs, mean, q95, q99);
+    applyTrafficLight(state);
+
+    // Update observed sphere
+    sObserved.visible = true;
+    sObserved.position.copy(sceneCoordsFromAxes(currentM(), pbar, obs, axesInfo, scale));
+    const color = getObservedColor(state);
+    sObserved.material.color.setHex(color);
+    sObserved.material.emissive.setHex(color);
+
+    // Update legend
+    legendObserved.style.display = 'flex';
+    legendObservedSwatch.style.background = `#${color.toString(16).padStart(6, '0')}`;
+  }
+
+  // Event listener for observed input
+  observedInput.addEventListener("input", () => {
+    // Recompute with current intercept values
+    const M = currentM();
+    const pbar = currentP();
+    const zMean = bilinear(incidentGrid, pGrid, meanFlat, rows, cols, M, pbar);
+    const zQ95 = bilinear(incidentGrid, pGrid, q95Flat, rows, cols, M, pbar);
+    const zQ99 = bilinear(incidentGrid, pGrid, q99Flat, rows, cols, M, pbar);
+    const q95Disp = Math.ceil(zQ95);
+    const q99Disp = Math.ceil(zQ99);
+    const axesInfo = surfMean.info;
+    updateObservedOverlap(M, zMean, q95Disp, q99Disp, axesInfo, pbar);
+  });
 
   mSlider.addEventListener("input", updateInterceptAndLegend);
   pSlider.addEventListener("input", updateInterceptAndLegend);
@@ -1469,6 +1936,9 @@
     sMean.scale.setScalar(breathe);
     sQ95.scale.setScalar(breathe);
     sQ99.scale.setScalar(breathe);
+    if (sObserved.visible) {
+      sObserved.scale.setScalar(breathe * 1.1);  // Slightly larger breathing for observed
+    }
 
     controls.update();
     renderer.render(scene, camera);
