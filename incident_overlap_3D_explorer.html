@@ -866,9 +866,16 @@
 
     .traffic-label {
       font-size: 9px;
-      color: var(--text-secondary);
+      color: var(--text-primary);
+      font-weight: 500;
       line-height: 1.2;
       white-space: nowrap;
+      transition: text-decoration 0.2s ease;
+    }
+
+    .traffic-label.active {
+      text-decoration: underline;
+      text-underline-offset: 2px;
     }
 
     .traffic-help {
@@ -1001,14 +1008,14 @@
                    class="observed-input"
                    min="0"
                    step="1"
-                   placeholder="Enter value..."
+                   value="25"
                    autocomplete="off">
           </div>
           <div class="observed-hint" id="observedHint">Highest overlap count for any individual</div>
           <div class="observed-warning" id="observedWarning">Observed overlaps cannot exceed total incidents</div>
         </div>
         <div class="traffic-light-col">
-          <div class="traffic-light neutral" id="trafficLight">
+          <div class="traffic-light" id="trafficLight">
             <div class="traffic-housing">
               <div class="traffic-lamp red" id="lampRed"></div>
               <div class="traffic-lamp orange" id="lampOrange"></div>
@@ -1016,19 +1023,19 @@
             </div>
             <div class="traffic-labels">
               <div class="traffic-label-row">
-                <span class="traffic-label">Exceeds chance</span>
+                <span class="traffic-label" id="labelRed">Exceeds chance</span>
                 <div class="traffic-help">
                   <div class="tooltip">This overlap count exceeds what would typically occur under random shift assignment (beyond the 99th percentile). This does not indicate guilt—it indicates that roster-based analysis alone cannot rule out chance, and professional statistical review by a qualified expert (e.g., Royal Statistical Society accredited) is strongly recommended before drawing any conclusions.</div>
                 </div>
               </div>
               <div class="traffic-label-row">
-                <span class="traffic-label">Warrants review</span>
+                <span class="traffic-label" id="labelOrange">Warrants review</span>
                 <div class="traffic-help">
                   <div class="tooltip">This overlap count is elevated but not extreme. It may warrant internal review to understand rostering patterns, but does not by itself indicate wrongdoing. Consider consulting with departmental leadership.</div>
                 </div>
               </div>
               <div class="traffic-label-row">
-                <span class="traffic-label">Within expectation</span>
+                <span class="traffic-label" id="labelGreen">Within expectation</span>
                 <div class="traffic-help">
                   <div class="tooltip">The observed overlap count falls within the range expected under random shift assignment. No statistical anomaly is indicated.</div>
                 </div>
@@ -1152,6 +1159,9 @@
   const lampRed = document.getElementById("lampRed");
   const lampOrange = document.getElementById("lampOrange");
   const lampGreen = document.getElementById("lampGreen");
+  const labelRed = document.getElementById("labelRed");
+  const labelOrange = document.getElementById("labelOrange");
+  const labelGreen = document.getElementById("labelGreen");
   const legendObserved = document.getElementById("legendObserved");
   const legendObservedSwatch = document.getElementById("legendObservedSwatch");
 
@@ -1205,6 +1215,11 @@
     lampGreen.style.boxShadow = glowGreen;
     lampOrange.style.boxShadow = glowOrange;
     lampRed.style.boxShadow = glowRed;
+
+    // Underline label only when its light is at full illumination (1.0)
+    labelGreen.classList.toggle('active', state.green === 1.0);
+    labelOrange.classList.toggle('active', state.orange === 1.0);
+    labelRed.classList.toggle('active', state.red === 1.0);
   }
 
   // Get interpolated color for observed sphere based on traffic light state
@@ -1883,6 +1898,10 @@
       legendObserved.style.display = 'none';
       observedWarning.classList.remove('visible');
       observedInput.classList.remove('warning');
+      // Clear all label underlines
+      labelGreen.classList.remove('active');
+      labelOrange.classList.remove('active');
+      labelRed.classList.remove('active');
       return;
     }
 
