@@ -5,7 +5,7 @@
 
 Two complementary interactive tools exploring the statistical foundations of "incident overlap" evidence in healthcare settings. Built as a pedagogical resource to help lawyers, journalists, statisticians, and the public understand why a nurse present at many incidents isn't necessarily evidence of wrongdoing.
 
-- **Incident Overlap 3D Explorer** (`incident_overlap_3D_explorer.html`) — "Chance or Guilt?" null hypothesis landscape (Mean/Q95/Q99)
+- **Incident Overlap 3D Explorer** (`incident_overlap_3D_explorer.html`) — null "landscape" overview (Mean/Q95/Q99) with traffic light comparison tool
 - **Incident Pattern Simulator** (`Incident_Pattern_Simulator.html`) — detailed single-scenario analysis
 
 ## The Core Problem
@@ -23,7 +23,7 @@ The simulator runs thousands of Monte Carlo trials where:
 
 ## Try It
 
-**[Launch the Incident Overlap 3D Explorer](incident_overlap_3D_explorer.html)** — "Chance or Guilt?" Explore the null hypothesis landscape
+**[Launch the Incident Overlap 3D Explorer](incident_overlap_3D_explorer.html)** — Explore the null overlap landscape (3D surfaces) and compare observed values with traffic light indicators
 
 **[Launch the Incident Pattern Simulator](Incident_Pattern_Simulator.html)** — Explore individual scenarios
 
@@ -44,19 +44,26 @@ The simulator runs thousands of Monte Carlo trials where:
 - **Hypergeometric distribution** for exact shift-based overlap
 - **Beta-binomial workload model** with intuitive Mean/Consistency parameters
 - **Monte Carlo confidence intervals** for key statistics
-- **3D surfaces (“manifold”)** from 5,000 trials per (M, p̄) grid cell
+- **3D surfaces (“manifold”)** default 5,000 trials per (M, p̄) grid cell  
+  *Efficiency note:* For efficiency, trials are generated per (p̄, trial) and reused across the incident axis via prefix sampling; this keeps the per-cell distributions unchanged.
 - Ward staffing presets including parameters from O'Quigley (2025)
 
-### Incident Overlap 3D Explorer — "Chance or Guilt?"
+### Incident Overlap 3D Explorer (the "manifold")
 
-Interactive 3D visualisation titled "Chance or Guilt?" showing how maximum incident overlap scales under the null hypothesis. The provocative title is deliberate: it helps concentrate minds on the core question these statistics address.
+Interactive 3D visualisation of how maximum incident overlap scales under the null hypothesis:
 
 - **Three statistical surfaces:** Mean, Q95, Q99 percentiles across 5,000 Monte Carlo trials per grid point
-- **Two-parameter exploration:** Number of incidents (M) vs mean presence (p̄, displayed as %)
+- **Two-parameter exploration:** Number of incidents (M) vs mean shift density (p̄), with presence displayed as percentages
 - **Real-time interpolation:** Drag the intercept marker to query any point on the surfaces
 - **Grounded baselines:** What overlap counts are expected by chance alone?
+- **Traffic light comparison:** Enter an observed overlap count to see a visual traffic light indicator (continuous):
+  - 🟢→🟠 **Mean to Q95**: colour transitions smoothly from green (at Mean) to orange (at Q95)
+  - 🟠→🔴 **Q95 to Q99**: colour transitions smoothly from orange (at Q95) to red (at Q99)
+  - 🔴 **Above Q99**: fully red (beyond the 99th percentile)
+  - When an observed value is entered, an additional marker appears in the 3D scene and an "Observed" entry is shown in the legend.
+  - Observed is bounded by M (total incidents); values above M trigger a warning and are clamped to M for display.
 
-Terminology note: the documentation mostly says "surfaces"; the export artefacts use "manifold". Here, "manifold" just means the set of three surfaces (Mean/Q95/Q99) over the (M, p̄) grid. Mean presence values are displayed as percentages (e.g., 22% rather than 0.22) for accessibility to non-technical audiences.
+Terminology note: the documentation mostly says “surfaces”; the export artefacts use “manifold”. Here, “manifold” just means the set of three surfaces (Mean/Q95/Q99) over the (M, p̄) grid.
 
 The surface/manifold data can be regenerated using `incident_overlap_3D_generator.py` with custom parameters.
 
