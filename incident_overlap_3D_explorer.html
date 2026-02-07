@@ -12,7 +12,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Incident–Roster Overlap Manifold</title>
+  <title>Chance or Guilt? — Incident Overlap Explorer</title>
 
   <!-- Google Fonts: JetBrains Mono for data, DM Sans for UI -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -456,6 +456,71 @@
       flex: 1;
     }
 
+    .metric-help {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      margin-left: 4px;
+      vertical-align: middle;
+      cursor: help;
+    }
+
+    .metric-help::before {
+      content: '?';
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .metric-help .tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      width: 240px;
+      padding: 10px;
+      background: rgba(40, 40, 40, 0.96);
+      color: #fff;
+      font-size: 10px;
+      line-height: 1.5;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .metric-help .tooltip::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      margin-left: -5px;
+      width: 10px;
+      height: 10px;
+      background: rgba(40, 40, 40, 0.96);
+      transform: rotate(45deg);
+    }
+
+    .metric-help:hover .tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
     .metric-value {
       font-family: var(--font-mono);
       font-size: 15px;
@@ -674,13 +739,281 @@
         justify-content: center;
       }
     }
+
+    /* ========== Observed Overlap Section ========== */
+    .observed-section {
+      margin-top: var(--space-lg);
+      padding: var(--space-md);
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 14px;
+      border: 1px solid var(--border-subtle);
+      display: none; /* Hidden until manifold loads */
+    }
+
+    .observed-section.ready {
+      display: block;
+    }
+
+    .observed-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-md);
+      padding-bottom: var(--space-sm);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .observed-header-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .observed-header-icon svg {
+      width: 14px;
+      height: 14px;
+      color: var(--text-secondary);
+    }
+
+    .observed-header-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: 0.02em;
+    }
+
+    .observed-content {
+      display: flex;
+      gap: var(--space-md);
+    }
+
+    .observed-input-col {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .observed-input-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .observed-input-wrapper {
+      position: relative;
+    }
+
+    .observed-input {
+      width: 100%;
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .observed-input:focus {
+      border-color: rgba(107, 158, 255, 0.5);
+      box-shadow: 0 0 0 3px rgba(107, 158, 255, 0.15);
+    }
+
+    .observed-input::placeholder {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .observed-input.warning {
+      border-color: rgba(255, 150, 50, 0.6);
+      box-shadow: 0 0 0 3px rgba(255, 150, 50, 0.15);
+    }
+
+    .observed-hint {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-style: italic;
+    }
+
+    .observed-warning {
+      font-size: 10px;
+      color: #d97a1e;
+      margin-top: 6px;
+      font-weight: 500;
+      display: none;
+    }
+
+    .observed-warning.visible {
+      display: block;
+    }
+
+    /* Traffic Light Column */
+    .traffic-light-col {
+      width: 160px;
+      flex-shrink: 0;
+    }
+
+    .traffic-light {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    /* Traffic light housing - the "body" */
+    .traffic-housing {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 8px;
+      background: #505050;
+      border-radius: 8px;
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .traffic-lamp {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: opacity 0.3s ease, box-shadow 0.3s ease;
+      /* Bezel effect - darker ring around each lamp */
+      border: 3px solid #3a3a3a;
+      box-sizing: border-box;
+    }
+
+    .traffic-lamp.red {
+      background: #ef5350;
+      box-shadow:
+        0 0 12px rgba(239, 83, 80, 0.7),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    .traffic-lamp.orange {
+      background: #ffa726;
+      box-shadow:
+        0 0 12px rgba(255, 167, 38, 0.7),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    .traffic-lamp.green {
+      background: #66bb6a;
+      box-shadow:
+        0 0 12px rgba(102, 187, 106, 0.7),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Labels column - to the right of housing */
+    .traffic-labels {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 2px;
+    }
+
+    .traffic-label-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 20px; /* Match lamp height for alignment */
+    }
+
+    .traffic-label {
+      font-size: 9px;
+      color: var(--text-primary);
+      font-weight: 500;
+      line-height: 1.2;
+      white-space: nowrap;
+      transition: text-decoration 0.2s ease;
+    }
+
+    .traffic-label.active {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .traffic-help {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: help;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .traffic-help::before {
+      content: '?';
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Tooltips */
+    .traffic-help .tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      right: -10px;
+      width: 240px;
+      padding: 10px;
+      background: rgba(40, 40, 40, 0.96);
+      color: #fff;
+      font-size: 10px;
+      line-height: 1.5;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(4px);
+      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .traffic-help .tooltip::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      right: 12px;
+      width: 10px;
+      height: 10px;
+      background: rgba(40, 40, 40, 0.96);
+      transform: rotate(45deg);
+    }
+
+    .traffic-help:hover .tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    /* Neutral state when no value entered */
+    .traffic-light.neutral .traffic-lamp {
+      opacity: 0.15;
+      box-shadow: none;
+    }
   </style>
 </head>
 <body>
 <div id="app">
   <!-- Ambient title -->
   <div id="title-overlay">
-    <div class="title-main">Neutrality</div>
+    <div class="title-main">What Does Neutrality Tell Us?</div>
     <div class="title-sub">INCIDENT–ROSTER OVERLAP UNDER THE NULL HYPOTHESIS</div>
   </div>
 
@@ -694,7 +1027,7 @@
         </svg>
       </div>
       <div class="panel-title-group">
-        <h1>Overlap Manifold</h1>
+        <h1>Chance or Guilt?</h1>
         <div class="panel-subtitle">Mean / Q95 / Q99 Surfaces</div>
       </div>
     </div>
@@ -702,7 +1035,7 @@
     <div class="control-section">
       <div class="control-row">
         <div class="control-label">
-          <span class="label-text">Incidents (M)</span>
+          <span class="label-text">Incidents(M)</span>
           <span class="label-value" id="mVal">40</span>
         </div>
         <input id="mSlider" class="range-slider accent-mean" type="range" min="0" max="7" step="1" value="3" />
@@ -712,10 +1045,69 @@
       <div class="control-row">
         <div class="control-label">
           <span class="label-text">Mean presence (p̄)</span>
-          <span class="label-value" id="pVal">0.250</span>
+          <span class="label-value" id="pVal">25.0%</span>
         </div>
         <input id="pSlider" class="range-slider accent-q99" type="range" min="0" max="1000" step="1" value="300" />
         <div class="control-hint">Continuous interpolation between grid rows</div>
+      </div>
+    </div>
+
+    <!-- Observed Overlap Section - positioned after sliders for natural workflow -->
+    <div class="observed-section" id="observedSection">
+      <div class="observed-header">
+        <div class="observed-header-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20V10"/>
+            <path d="M18 20V4"/>
+            <path d="M6 20v-4"/>
+          </svg>
+        </div>
+        <span class="observed-header-title">COMPARE OBSERVATION</span>
+      </div>
+      <div class="observed-content">
+        <div class="observed-input-col">
+          <div class="observed-input-label">Observed incidents</div>
+          <div class="observed-input-wrapper">
+            <input type="number"
+                   id="observedInput"
+                   class="observed-input"
+                   min="0"
+                   step="1"
+                   value="25"
+                   autocomplete="off">
+          </div>
+          <div class="observed-hint" id="observedHint">Highest overlap count for any nurse</div>
+          <div class="observed-warning" id="observedWarning">Observed overlaps cannot exceed total incidents</div>
+        </div>
+        <div class="traffic-light-col">
+          <div class="traffic-light" id="trafficLight">
+            <div class="traffic-housing">
+              <div class="traffic-lamp red" id="lampRed"></div>
+              <div class="traffic-lamp orange" id="lampOrange"></div>
+              <div class="traffic-lamp green" id="lampGreen"></div>
+            </div>
+            <div class="traffic-labels">
+              <div class="traffic-label-row">
+                <span class="traffic-label" id="labelRed">Exceeds chance</span>
+                <div class="traffic-help">
+                  <div class="tooltip">This overlap count exceeds what would typically occur under random shift assignment (beyond the 99th percentile). This does not indicate guilt—it indicates that roster-based analysis alone cannot rule out chance, and professional statistical review by a qualified expert (e.g., Royal Statistical Society accredited) is strongly recommended before drawing any conclusions.</div>
+                </div>
+              </div>
+              <div class="traffic-label-row">
+                <span class="traffic-label" id="labelOrange">Warrants review</span>
+                <div class="traffic-help">
+                  <div class="tooltip">This overlap count is elevated but not extreme. It may warrant internal review to understand rostering patterns, but does not by itself indicate wrongdoing. Consider consulting with departmental leadership.</div>
+                </div>
+              </div>
+              <div class="traffic-label-row">
+                <span class="traffic-label" id="labelGreen">Within expectation</span>
+                <div class="traffic-help">
+                  <div class="tooltip">The observed overlap count falls within the range expected under random shift assignment. No statistical anomaly is indicated.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -739,24 +1131,24 @@
           </svg>
         </div>
         <span class="intercept-title">INTERCEPT</span>
-        <span class="intercept-coords" id="interceptCoords">(M=40, p̄=0.250)</span>
+        <span class="intercept-coords" id="interceptCoords">(M=40, p̄=25.0%)</span>
       </div>
 
       <div class="metric-row">
         <div class="metric-dot mean"></div>
-        <span class="metric-label">Mean(max)</span>
+        <span class="metric-label">Mean(max) <span class="metric-help"><div class="tooltip">The average highest overlap across all simulated trials. This is roughly how many incidents the most-exposed nurse would share by chance alone in a typical random scenario.</div></span></span>
         <span class="metric-value" id="valMean">—</span>
       </div>
 
       <div class="metric-row">
         <div class="metric-dot q95"></div>
-        <span class="metric-label">Q95(max)</span>
+        <span class="metric-label">Q95(max) <span class="metric-help"><div class="tooltip">The 95th-percentile highest overlap. In 95% of random simulations the most-exposed nurse shared no more than this many incidents. Only 5% of chance scenarios produce a higher value.</div></span></span>
         <span class="metric-value" id="valQ95">—</span>
       </div>
 
       <div class="metric-row">
         <div class="metric-dot q99"></div>
-        <span class="metric-label">Q99(max)</span>
+        <span class="metric-label">Q99(max) <span class="metric-help"><div class="tooltip">The 99th-percentile highest overlap. In 99% of random simulations the most-exposed nurse shared no more than this many incidents. Only 1% of chance scenarios produce a higher value.</div></span></span>
         <span class="metric-value" id="valQ99">—</span>
       </div>
     </div>
@@ -786,6 +1178,10 @@
       <div class="legend-swatch q99"></div>
       <span class="legend-text">Q99</span>
     </div>
+    <div class="legend-item" id="legendObserved" style="display: none;">
+      <div class="legend-swatch" id="legendObservedSwatch" style="background: #888; border-radius: 50%; width: 10px; height: 10px;"></div>
+      <span class="legend-text">Observed</span>
+    </div>
   </div>
 
   <!-- Controls hint -->
@@ -800,7 +1196,7 @@
 
 <script type="module">
   // ---- Canonical manifold filename (no timestamp) ----
-  const MANIFOLD_URL = "./manifold_pack_ensemble_rosters_R5000.json";
+  const MANIFOLD_URL = "./manifold_roster_pack.json";
 
   import * as THREE from "three";
   import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -819,9 +1215,95 @@
   const statusDot = document.querySelector(".status-dot");
   const statusText = document.getElementById("statusText");
 
+  // Observed overlap section DOM refs
+  const observedSection = document.getElementById("observedSection");
+  const observedInput = document.getElementById("observedInput");
+  const observedHint = document.getElementById("observedHint");
+  const observedWarning = document.getElementById("observedWarning");
+  const trafficLight = document.getElementById("trafficLight");
+  const lampRed = document.getElementById("lampRed");
+  const lampOrange = document.getElementById("lampOrange");
+  const lampGreen = document.getElementById("lampGreen");
+  const labelRed = document.getElementById("labelRed");
+  const labelOrange = document.getElementById("labelOrange");
+  const labelGreen = document.getElementById("labelGreen");
+  const legendObserved = document.getElementById("legendObserved");
+  const legendObservedSwatch = document.getElementById("legendObservedSwatch");
+
   // ---------- helpers ----------
   function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
 
+  // Smoothstep for visual polish on transitions
+  function smoothstep(edge0, edge1, x) {
+    const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+    return t * t * (3 - 2 * t);
+  }
+
+  // Traffic light calculation: returns { green, orange, red } each in [0, 1]
+  function calculateTrafficLight(obs, mean, q95, q99) {
+    if (obs <= mean) {
+      return { green: 1.0, orange: 0.0, red: 0.0 };
+    } else if (obs <= q95) {
+      // Transition green → orange across mean-to-Q95 range
+      const t = smoothstep(mean, q95, obs);
+      return { green: 1.0 - t, orange: t, red: 0.0 };
+    } else if (obs <= q99) {
+      // Transition orange → red across Q95-to-Q99 range
+      const t = smoothstep(q95, q99, obs);
+      return { green: 0.0, orange: 1.0 - t, red: t };
+    } else {
+      // Above Q99
+      return { green: 0.0, orange: 0.0, red: 1.0 };
+    }
+  }
+
+  // Apply traffic light state to DOM with continuous opacity
+  function applyTrafficLight(state) {
+    const minOpacity = 0.15;  // Dim but visible when "off"
+    const maxOpacity = 1.0;
+
+    // Calculate opacities with smooth interpolation
+    const greenOp = minOpacity + (maxOpacity - minOpacity) * state.green;
+    const orangeOp = minOpacity + (maxOpacity - minOpacity) * state.orange;
+    const redOp = minOpacity + (maxOpacity - minOpacity) * state.red;
+
+    // Apply to lamps
+    lampGreen.style.opacity = greenOp;
+    lampOrange.style.opacity = orangeOp;
+    lampRed.style.opacity = redOp;
+
+    // Glow effect scales with intensity
+    const glowGreen = state.green > 0.5 ? `0 0 ${8 * state.green}px rgba(67, 160, 71, ${0.5 * state.green})` : 'none';
+    const glowOrange = state.orange > 0.5 ? `0 0 ${8 * state.orange}px rgba(251, 140, 0, ${0.5 * state.orange})` : 'none';
+    const glowRed = state.red > 0.5 ? `0 0 ${8 * state.red}px rgba(229, 57, 53, ${0.5 * state.red})` : 'none';
+
+    lampGreen.style.boxShadow = glowGreen;
+    lampOrange.style.boxShadow = glowOrange;
+    lampRed.style.boxShadow = glowRed;
+
+    // Underline label only when its light is at full illumination (1.0)
+    labelGreen.classList.toggle('active', state.green === 1.0);
+    labelOrange.classList.toggle('active', state.orange === 1.0);
+    labelRed.classList.toggle('active', state.red === 1.0);
+  }
+
+  // Get interpolated color for observed sphere based on traffic light state
+  function getObservedColor(state) {
+    // RGB values for traffic light colors
+    const green = { r: 67, g: 160, b: 71 };
+    const orange = { r: 251, g: 140, b: 0 };
+    const red = { r: 229, g: 57, b: 53 };
+
+    // Weighted blend
+    const total = state.green + state.orange + state.red;
+    if (total === 0) return 0x888888; // fallback gray
+
+    const r = Math.round((green.r * state.green + orange.r * state.orange + red.r * state.red) / total);
+    const g = Math.round((green.g * state.green + orange.g * state.orange + red.g * state.red) / total);
+    const b = Math.round((green.b * state.green + orange.b * state.orange + red.b * state.red) / total);
+
+    return (r << 16) | (g << 8) | b;
+  }
 
   function syncSliderFill(el) {
     const min = Number(el.min || 0);
@@ -921,6 +1403,8 @@
     manifold = await resp.json();
     statusDot.classList.remove("loading");
     statusText.textContent = "Ready";
+    // Show the observed overlap section now that data is loaded
+    observedSection.classList.add("ready");
   } catch (e) {
     statusText.textContent = `Failed: ${e.message}`;
     throw e;
@@ -951,7 +1435,7 @@
   pSlider.step = 1;
   // Default to p̄=0.22 (matching Python intercept_mean_presence)
   // Formula: sliderValue = ((targetP - pMin) / (pMax - pMin)) * 1000
-  const defaultPbar = 0.22;
+  const defaultPbar = 0.204;      // 22%
   pSlider.value = String(Math.round(((defaultPbar - pMin) / (pMax - pMin)) * 1000));
 
   syncSliderFill(mSlider);
@@ -959,8 +1443,18 @@
 
   // meta display
   const p = manifold.params;
-  metaEl.textContent = `N=${p.N} nurses · S=${p.S} shifts · R=${p.R.toLocaleString()} trials`;
-  modeBadgeEl.textContent = manifold.mode === "ensemble_rosters" ? "ENSEMBLE ROSTERS" : "FIXED ROSTERS";
+  // Handle both fixed-R and adaptive MC modes
+  let rDesc;
+  if (p.R != null) {
+    rDesc = `R=${p.R.toLocaleString()} trials`;
+  } else if (p.R_min != null && p.R_max != null) {
+    rDesc = `R∈[${p.R_min.toLocaleString()}–${p.R_max.toLocaleString()}] adaptive`;
+  } else {
+    rDesc = "R=? trials";
+  }
+  metaEl.textContent = `N=${p.N} nurses · S=${p.S} shifts · ${rDesc}`;
+  // Mode tag from Python is "ensemble" or "fixed" (not "ensemble_rosters")
+  modeBadgeEl.textContent = manifold.mode === "ensemble" ? "ENSEMBLE ROSTERS" : "FIXED ROSTER";
 
   // ---------- Three.js scene ----------
   const app = document.getElementById("app");
@@ -1176,12 +1670,15 @@
 
   // Replace the label text (the original contains a pasted-encoding artifact) and keep it in front of the grid.
   yLabel.visible = false;
-  const yLabelFixed = createTextSprite('Mean shift density (p\u0304)');
+  const yLabelFixed = createTextSprite('Mean presence (p\u0304) %');
   yLabelFixed.position.set(scale.baseX/2 + 2.5, 0, -0.5);
   scene.add(yLabelFixed);
 
-  // Z-axis label: "Max overlaps (any nurse, per run)" - on the RHS of the back panel (x=max, y=max)
-  const zLabel = createTextSprite('Max overlaps (any nurse)', 40);
+  // Z-axis label - mode-aware: "any nurse" for ensemble, "fixed roster" for fixed
+  const zLabelText = manifold.mode === "ensemble"
+    ? 'Max overlaps (any nurse)'
+    : 'Max overlaps (fixed roster)';
+  const zLabel = createTextSprite(zLabelText, 40);
   zLabel.position.set(scale.baseX/2 + 2.3, scale.baseY/2 - 0.2, scale.baseZ/2);
   scene.add(zLabel);
 
@@ -1195,11 +1692,11 @@
     scene.add(tick);
   }
 
-  // Y-axis tick labels (mean presence: 0.10, 0.15, ... 0.40) - along the right base edge (M=max)
+  // Y-axis tick labels (mean presence: 10%, 15%, ... 40%) - along the right base edge (M=max)
   const yMin = pGrid[0], yMax = pGrid[pGrid.length - 1];
   const ySpan = yMax - yMin;
   for (let p = 0.10; p <= 0.40; p += 0.05) {
-    const tick = createTickLabel(p.toFixed(2));
+    const tick = createTickLabel(`${Math.round(p * 100)}%`);
     const yPos = ((p - yMin) / ySpan - 0.5) * scale.baseY;
     tick.position.set(scale.baseX/2 + 1.0, yPos, -0.3);
     scene.add(tick);
@@ -1229,9 +1726,9 @@
     return { mesh, info };
   }
 
-  const surfMean = makeSurface(meanFlat, 0x7aaaff, 0.55);
-  const surfQ95  = makeSurface(q95Flat,  0xffb45a, 0.45);
-  const surfQ99  = makeSurface(q99Flat,  0x78ffaa, 0.40);
+  const surfMean = makeSurface(meanFlat, 0x7aaaff, 0.35);
+  const surfQ95  = makeSurface(q95Flat,  0xffb45a, 0.30);
+  const surfQ99  = makeSurface(q99Flat,  0x78ffaa, 0.25);
 
   // Vertical guide line + spheres
   const lineMat = new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.6 });
@@ -1259,6 +1756,22 @@
   const sMean = makeSphere(0x7aaaff);
   const sQ95  = makeSphere(0xffb45a);
   const sQ99  = makeSphere(0x78ffaa);
+
+  // Observed value sphere (initially hidden, larger and with distinct style)
+  const sObserved = (() => {
+    const g = new THREE.SphereGeometry(0.28, 32, 32);
+    const m = new THREE.MeshStandardMaterial({
+      color: 0x888888,
+      roughness: 0.15,
+      metalness: 0.2,
+      emissive: 0x888888,
+      emissiveIntensity: 0.4
+    });
+    const s = new THREE.Mesh(g, m);
+    s.visible = false;  // Hidden until user enters a value
+    scene.add(s);
+    return s;
+  })();
 
   // Base marker - X shape (matching Python matplotlib marker="x")
   const xSize = 0.35;  // Half-size of the X
@@ -1416,8 +1929,8 @@
     const zQ99  = bilinear(incidentGrid, pGrid, q99Flat,  rows, cols, M, pbar);
 
     mValEl.textContent = `${M}`;
-    pValEl.textContent = `${pbar.toFixed(3)}`;
-    interceptCoordsEl.textContent = `(M=${M}, p̄=${pbar.toFixed(3)})`;
+    pValEl.textContent = `${(pbar * 100).toFixed(1)}%`;
+    interceptCoordsEl.textContent = `(M=${M}, p̄=${(pbar * 100).toFixed(1)}%)`;
 
     syncSliderFill(mSlider);
     syncSliderFill(pSlider);
@@ -1443,7 +1956,88 @@
     sMean.position.copy(sceneCoordsFromAxes(M, pbar, zMean, axesInfo, scale));
     sQ95.position.copy(sceneCoordsFromAxes(M, pbar, q95Disp, axesInfo, scale));
     sQ99.position.copy(sceneCoordsFromAxes(M, pbar, q99Disp, axesInfo, scale));
+
+    // Update observed overlap section
+    updateObservedOverlap(M, zMean, q95Disp, q99Disp, axesInfo, pbar);
   }
+
+  // Handle observed overlap input and traffic light
+  function updateObservedOverlap(M, mean, q95, q99, axesInfo, pbar) {
+    // Update max value hint
+    observedInput.max = M;
+
+    const rawValue = observedInput.value.trim();
+    const obs = parseInt(rawValue, 10);
+
+    // Handle empty/invalid input
+    if (rawValue === '' || isNaN(obs)) {
+      trafficLight.classList.add('neutral');
+      sObserved.visible = false;
+      legendObserved.style.display = 'none';
+      observedWarning.classList.remove('visible');
+      observedInput.classList.remove('warning');
+      // Clear all label underlines
+      labelGreen.classList.remove('active');
+      labelOrange.classList.remove('active');
+      labelRed.classList.remove('active');
+      return;
+    }
+
+    trafficLight.classList.remove('neutral');
+
+    // Handle value exceeding M
+    if (obs > M) {
+      observedWarning.classList.add('visible');
+      observedInput.classList.add('warning');
+      // Still show traffic light but clamped
+      const clampedObs = M;
+      const state = calculateTrafficLight(clampedObs, mean, q95, q99);
+      applyTrafficLight(state);
+      // Position sphere at M (clamped)
+      sObserved.visible = true;
+      sObserved.position.copy(sceneCoordsFromAxes(currentM(), pbar, clampedObs, axesInfo, scale));
+      const color = getObservedColor(state);
+      sObserved.material.color.setHex(color);
+      sObserved.material.emissive.setHex(color);
+      // Update legend
+      legendObserved.style.display = 'flex';
+      legendObservedSwatch.style.background = `#${color.toString(16).padStart(6, '0')}`;
+      return;
+    }
+
+    // Valid input
+    observedWarning.classList.remove('visible');
+    observedInput.classList.remove('warning');
+
+    // Calculate and apply traffic light
+    const state = calculateTrafficLight(obs, mean, q95, q99);
+    applyTrafficLight(state);
+
+    // Update observed sphere
+    sObserved.visible = true;
+    sObserved.position.copy(sceneCoordsFromAxes(currentM(), pbar, obs, axesInfo, scale));
+    const color = getObservedColor(state);
+    sObserved.material.color.setHex(color);
+    sObserved.material.emissive.setHex(color);
+
+    // Update legend
+    legendObserved.style.display = 'flex';
+    legendObservedSwatch.style.background = `#${color.toString(16).padStart(6, '0')}`;
+  }
+
+  // Event listener for observed input
+  observedInput.addEventListener("input", () => {
+    // Recompute with current intercept values
+    const M = currentM();
+    const pbar = currentP();
+    const zMean = bilinear(incidentGrid, pGrid, meanFlat, rows, cols, M, pbar);
+    const zQ95 = bilinear(incidentGrid, pGrid, q95Flat, rows, cols, M, pbar);
+    const zQ99 = bilinear(incidentGrid, pGrid, q99Flat, rows, cols, M, pbar);
+    const q95Disp = Math.ceil(zQ95);
+    const q99Disp = Math.ceil(zQ99);
+    const axesInfo = surfMean.info;
+    updateObservedOverlap(M, zMean, q95Disp, q99Disp, axesInfo, pbar);
+  });
 
   mSlider.addEventListener("input", updateInterceptAndLegend);
   pSlider.addEventListener("input", updateInterceptAndLegend);
@@ -1469,6 +2063,9 @@
     sMean.scale.setScalar(breathe);
     sQ95.scale.setScalar(breathe);
     sQ99.scale.setScalar(breathe);
+    if (sObserved.visible) {
+      sObserved.scale.setScalar(breathe * 1.1);  // Slightly larger breathing for observed
+    }
 
     controls.update();
     renderer.render(scene, camera);
