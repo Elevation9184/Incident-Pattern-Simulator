@@ -27,7 +27,7 @@ The simulator runs thousands of Monte Carlo trials where:
 
 **[Launch the Incident Pattern Simulator](Incident_Pattern_Simulator.html)** — Explore individual scenarios
 
-![Monte Carlo Manifold Surfaces](manifold_3d_surfaces_R5000_ensemble_rosters.png) 
+![Monte Carlo Manifold Surfaces](manifold_3d_surfaces_ensemble_R5000.png) 
 
 ## Features
 
