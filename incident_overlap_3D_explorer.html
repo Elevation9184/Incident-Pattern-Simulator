@@ -456,6 +456,71 @@
       flex: 1;
     }
 
+    .metric-help {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      margin-left: 4px;
+      vertical-align: middle;
+      cursor: help;
+    }
+
+    .metric-help::before {
+      content: '?';
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .metric-help .tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      width: 240px;
+      padding: 10px;
+      background: rgba(40, 40, 40, 0.96);
+      color: #fff;
+      font-size: 10px;
+      line-height: 1.5;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .metric-help .tooltip::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      margin-left: -5px;
+      width: 10px;
+      height: 10px;
+      background: rgba(40, 40, 40, 0.96);
+      transform: rotate(45deg);
+    }
+
+    .metric-help:hover .tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
     .metric-value {
       font-family: var(--font-mono);
       font-size: 15px;
@@ -1071,19 +1136,19 @@
 
       <div class="metric-row">
         <div class="metric-dot mean"></div>
-        <span class="metric-label">Mean(max)</span>
+        <span class="metric-label">Mean(max) <span class="metric-help"><div class="tooltip">The average highest overlap across all simulated trials. This is roughly how many incidents the most-exposed nurse would share by chance alone in a typical random scenario.</div></span></span>
         <span class="metric-value" id="valMean">—</span>
       </div>
 
       <div class="metric-row">
         <div class="metric-dot q95"></div>
-        <span class="metric-label">Q95(max)</span>
+        <span class="metric-label">Q95(max) <span class="metric-help"><div class="tooltip">The 95th-percentile highest overlap. In 95% of random simulations the most-exposed nurse shared no more than this many incidents. Only 5% of chance scenarios produce a higher value.</div></span></span>
         <span class="metric-value" id="valQ95">—</span>
       </div>
 
       <div class="metric-row">
         <div class="metric-dot q99"></div>
-        <span class="metric-label">Q99(max)</span>
+        <span class="metric-label">Q99(max) <span class="metric-help"><div class="tooltip">The 99th-percentile highest overlap. In 99% of random simulations the most-exposed nurse shared no more than this many incidents. Only 1% of chance scenarios produce a higher value.</div></span></span>
         <span class="metric-value" id="valQ99">—</span>
       </div>
     </div>
