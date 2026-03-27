@@ -48,7 +48,7 @@ from __future__ import annotations
 
 import time
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Tuple
 
 import os
@@ -91,11 +91,22 @@ class Config:
     threshold_T: int = 20
 
     # Model choice
-    ensemble_rosters: bool = True   # True = redraw workloads each trial
+    ensemble_rosters: bool = False   # True = redraw workloads each trial
+
+    # Staffing constraint mode (cf. Gill, 2026)
+    # "unconstrained" = independent hypergeometric draws per nurse per shift (existing)
+    # "fixed"         = each shift draws exactly nurses_per_shift from the pool
+    # "day_night"     = two regimes with separate fixed shift sizes
+    staffing_mode: str = "day_night"
+    nurses_per_shift: int = 8       # for "fixed" mode
+    day_staffing: int = 10          # for "day_night" mode
+    night_staffing: int = 5         # for "day_night" mode
+    day_fraction: float = 0.5       # proportion of shifts that are day
+    day_night_split_concentration: float = 8.0  # lower = stronger nurse-level day/night specialization
 
     # Presence scaling / realism
     presence_clip_max: float = 0.95  # avoid >1 presence after rescaling tail
-    # Quantiles for tail surfaces (interpretable as 1-in-k events)
+    # Quantiles for tail surfaces (interpretable as 1-in-k events)⌈
     q95: float = 0.95
     q99: float = 0.99
 
@@ -139,6 +150,8 @@ class Config:
     export: bool = True
     export_json_stem: str = "manifold_pack"
     export_pretty: bool = False
+    export_regime_packs: bool = True
+    export_max_overlap_hist: bool = True
 
     # Heatmap rendering
     heatmap_interpolation: str = "nearest"
@@ -375,6 +388,27 @@ def scale_workloads_to_presence(
 
 
 @njit(cache=True)
+def scale_workloads_to_probabilities(
+    rel_workloads: np.ndarray,
+    mean_presence: float,
+    clip_max: float,
+) -> np.ndarray:
+    """Scale normalized relative workloads to target overall presence probabilities."""
+    N = rel_workloads.shape[0]
+    probs = np.empty(N, dtype=np.float64)
+
+    for i in range(N):
+        p = mean_presence * rel_workloads[i]
+        if p < 0.0:
+            p = 0.0
+        if p > clip_max:
+            p = clip_max
+        probs[i] = p
+
+    return probs
+
+
+@njit(cache=True)
 def one_trial_metrics(
     S: int,
     K: np.ndarray,
@@ -397,6 +431,378 @@ def one_trial_metrics(
             c_ge_T += 1
 
     return max_ov, c_ge_T
+
+
+# -----------------------------
+# Constrained staffing kernels (cf. Gill, 2026)
+# -----------------------------
+
+@njit(cache=True)
+def _scaled_day_night_staff_targets(
+    N: int,
+    mean_presence: float,
+    day_staffing: int,
+    night_staffing: int,
+    day_fraction: float,
+) -> Tuple[float, float]:
+    """Rescale the day/night staffing profile so its mean matches N * mean_presence."""
+    base_avg_staff = day_fraction * day_staffing + (1.0 - day_fraction) * night_staffing
+    target_avg_staff = mean_presence * N
+
+    if base_avg_staff <= 0.0:
+        return target_avg_staff, target_avg_staff
+
+    scale = target_avg_staff / base_avg_staff
+    day_target = day_staffing * scale
+    night_target = night_staffing * scale
+
+    if day_target < 0.0:
+        day_target = 0.0
+    if night_target < 0.0:
+        night_target = 0.0
+    if day_target > N:
+        day_target = float(N)
+    if night_target > N:
+        night_target = float(N)
+
+    return day_target, night_target
+
+
+@njit(cache=True)
+def _slot_share_day(
+    day_fraction: float,
+    day_staff_target: float,
+    night_staff_target: float,
+) -> float:
+    """Share of all nurse-slots that fall on day shifts under the staffing profile."""
+    total_slots = day_fraction * day_staff_target + (1.0 - day_fraction) * night_staff_target
+    if total_slots <= 0.0:
+        return day_fraction
+    share = (day_fraction * day_staff_target) / total_slots
+    if share < 0.001:
+        return 0.001
+    if share > 0.999:
+        return 0.999
+    return share
+
+
+@njit(cache=True)
+def draw_day_night_shares(
+    N: int,
+    slot_share_day: float,
+    concentration: float,
+) -> np.ndarray:
+    """Draw each nurse's fraction of worked shifts that fall on days."""
+    shares = np.empty(N, dtype=np.float64)
+    conc = concentration
+    if conc < 2.0:
+        conc = 2.0
+    a = slot_share_day * conc
+    b = (1.0 - slot_share_day) * conc
+    if a <= 0.0:
+        a = 0.001
+    if b <= 0.0:
+        b = 0.001
+
+    for i in range(N):
+        shares[i] = beta_via_gamma(a, b)
+
+    return shares
+
+
+@njit(cache=True)
+def build_day_night_weights(
+    overall_probs: np.ndarray,
+    day_shares: np.ndarray,
+    N: int,
+    day_fraction: float,
+    day_staff_target: float,
+    night_staff_target: float,
+    clip_max: float,
+    out_day_weights: np.ndarray,
+    out_night_weights: np.ndarray,
+) -> None:
+    """Convert overall nurse workload probabilities into day/night sampling weights."""
+    q_day = day_fraction
+    q_night = 1.0 - day_fraction
+    avg_day_rate = day_staff_target / N if day_staff_target > 0.0 else 0.0
+    avg_night_rate = night_staff_target / N if night_staff_target > 0.0 else 0.0
+
+    sum_day = 0.0
+    sum_night = 0.0
+
+    for i in range(N):
+        p = overall_probs[i]
+        if p < 0.0:
+            p = 0.0
+        if p > clip_max:
+            p = clip_max
+
+        share_day = day_shares[i]
+        if share_day < 0.001:
+            share_day = 0.001
+        if share_day > 0.999:
+            share_day = 0.999
+
+        day_rate = 0.0
+        night_rate = 0.0
+        if q_day > 0.0:
+            day_rate = (p * share_day) / q_day
+        if q_night > 0.0:
+            night_rate = (p * (1.0 - share_day)) / q_night
+
+        if day_rate > clip_max:
+            day_rate = clip_max
+        if night_rate > clip_max:
+            night_rate = clip_max
+        if day_rate < 0.0:
+            day_rate = 0.0
+        if night_rate < 0.0:
+            night_rate = 0.0
+
+        if avg_day_rate > 0.0:
+            out_day_weights[i] = day_rate / avg_day_rate
+        else:
+            out_day_weights[i] = 0.0
+
+        if avg_night_rate > 0.0:
+            out_night_weights[i] = night_rate / avg_night_rate
+        else:
+            out_night_weights[i] = 0.0
+
+        sum_day += out_day_weights[i]
+        sum_night += out_night_weights[i]
+
+    if sum_day > 0.0:
+        scale_day = N / sum_day
+        for i in range(N):
+            out_day_weights[i] *= scale_day
+
+    if sum_night > 0.0:
+        scale_night = N / sum_night
+        for i in range(N):
+            out_night_weights[i] *= scale_night
+
+
+@njit(cache=True)
+def _draw_shift_types(
+    S: int,
+    day_fraction: float,
+) -> np.ndarray:
+    """Create a fixed day/night schedule with the requested day-share."""
+    shift_types = np.zeros(S, dtype=np.int8)
+    day_count = int(np.rint(S * day_fraction))
+    if day_count < 0:
+        day_count = 0
+    if day_count > S:
+        day_count = S
+
+    for i in range(day_count):
+        shift_types[i] = 1
+
+    for i in range(S - 1):
+        j = i + int(np.random.random() * (S - i))
+        tmp = shift_types[i]
+        shift_types[i] = shift_types[j]
+        shift_types[j] = tmp
+
+    return shift_types
+
+
+@njit(cache=True)
+def _incident_shift_types(
+    shift_types: np.ndarray,
+    incident_shifts: np.ndarray,
+    out_types: np.ndarray,
+) -> None:
+    for i in range(incident_shifts.shape[0]):
+        out_types[i] = shift_types[int(incident_shifts[i])]
+
+
+@njit(cache=True)
+def _sample_fractional_team_size(target_size: float, N: int) -> int:
+    """Sample an integer team size whose expectation matches target_size."""
+    if target_size <= 0.0:
+        return 0
+    if target_size >= N:
+        return N
+
+    lo = int(np.floor(target_size))
+    frac = target_size - lo
+    size = lo
+    if np.random.random() < frac:
+        size += 1
+
+    if size < 0:
+        size = 0
+    if size > N:
+        size = N
+    return size
+
+@njit(cache=True)
+def _weighted_draw_team(
+    weights: np.ndarray,
+    available: np.ndarray,
+    team_size: int,
+    overlap_counts: np.ndarray,
+) -> None:
+    """Draw team_size nurses without replacement, weighted by workload.
+
+    Updates overlap_counts[nurse] in-place (increments for each selected nurse).
+    Uses sequential sampling: for each slot, pick a nurse with probability
+    proportional to remaining weight, then zero that nurse's weight.
+
+    weights:         float64[N]  — nurse workload weights (unchanged)
+    available:       float64[N]  — scratch buffer (will be overwritten)
+    team_size:       int         — nurses to draw for this shift
+    overlap_counts:  int64[N]    — running overlap tally (mutated)
+    """
+    N = weights.shape[0]
+    total_w = 0.0
+    for i in range(N):
+        available[i] = weights[i]
+        total_w += weights[i]
+
+    for _ in range(team_size):
+        if total_w <= 0.0:
+            break
+        r = np.random.random() * total_w
+        cum = 0.0
+        chosen = 0
+        for i in range(N):
+            if available[i] <= 0.0:
+                continue
+            cum += available[i]
+            if r <= cum:
+                chosen = i
+                break
+        overlap_counts[chosen] += 1
+        total_w -= available[chosen]
+        available[chosen] = 0.0
+
+
+@njit(cache=True)
+def one_trial_metrics_constrained(
+    N: int,
+    weights: np.ndarray,
+    available: np.ndarray,
+    M: int,
+    T: int,
+    staffing_mode: int,
+    nurses_per_shift: int,
+    day_staffing: int,
+    night_staffing: int,
+    day_fraction: float,
+) -> Tuple[int, int]:
+    """Constrained-staffing trial: for each of M incident shifts, draw a team.
+
+    staffing_mode: 1 = fixed, 2 = day_night
+    Returns: (max overlap, count of nurses with overlap >= T)
+    """
+    overlap = np.zeros(N, dtype=np.int64)
+
+    for _ in range(M):
+        if staffing_mode == 2:
+            # Day/night: each incident shift independently day or night
+            team_size = day_staffing if np.random.random() < day_fraction else night_staffing
+        else:
+            team_size = nurses_per_shift
+
+        if team_size > N:
+            team_size = N
+        _weighted_draw_team(weights, available, team_size, overlap)
+
+    max_ov = 0
+    c_ge_T = 0
+    for i in range(N):
+        ov = int(overlap[i])
+        if ov > max_ov:
+            max_ov = ov
+        if ov >= T:
+            c_ge_T += 1
+
+    return max_ov, c_ge_T
+
+
+@njit(cache=True)
+def _constrained_prefix_overlaps(
+    N: int,
+    weights: np.ndarray,
+    available: np.ndarray,
+    maxM: int,
+    T: int,
+    staffing_mode: int,
+    nurses_per_shift: int,
+    day_staffing: int,
+    night_staffing: int,
+    day_fraction: float,
+    out_max: np.ndarray,
+    out_c_ge_T: np.ndarray,
+) -> None:
+    """Constrained prefix path: simulate maxM incident shifts, emit max/count
+    at each prefix length m=1..maxM.
+
+    out_max[m]:     max overlap after m+1 incident shifts
+    out_c_ge_T[m]:  count of nurses >= T after m+1 incident shifts
+    """
+    overlap = np.zeros(N, dtype=np.int64)
+
+    for m in range(maxM):
+        if staffing_mode == 2:
+            team_size = day_staffing if np.random.random() < day_fraction else night_staffing
+        else:
+            team_size = nurses_per_shift
+
+        if team_size > N:
+            team_size = N
+        _weighted_draw_team(weights, available, team_size, overlap)
+
+        mx = 0
+        c = 0
+        for i in range(N):
+            v = int(overlap[i])
+            if v > mx:
+                mx = v
+            if v >= T:
+                c += 1
+        out_max[m] = mx
+        out_c_ge_T[m] = c
+
+
+@njit(cache=True)
+def _constrained_prefix_overlaps_day_night(
+    N: int,
+    day_weights: np.ndarray,
+    night_weights: np.ndarray,
+    available: np.ndarray,
+    incident_types: np.ndarray,
+    day_staff_target: float,
+    night_staff_target: float,
+    T: int,
+    out_max: np.ndarray,
+    out_c_ge_T: np.ndarray,
+) -> None:
+    """Constrained prefix path for genuine day/night regimes with nurse-specific affinities."""
+    overlap = np.zeros(N, dtype=np.int64)
+
+    for m in range(incident_types.shape[0]):
+        if incident_types[m] == 1:
+            team_size = _sample_fractional_team_size(day_staff_target, N)
+            _weighted_draw_team(day_weights, available, team_size, overlap)
+        else:
+            team_size = _sample_fractional_team_size(night_staff_target, N)
+            _weighted_draw_team(night_weights, available, team_size, overlap)
+
+        mx = 0
+        c = 0
+        for i in range(N):
+            v = int(overlap[i])
+            if v > mx:
+                mx = v
+            if v >= T:
+                c += 1
+        out_max[m] = mx
+        out_c_ge_T[m] = c
 
 
 # -----------------------------
@@ -528,8 +934,18 @@ def simulate_grid_fixed(
     q99: float,
     clip_max: float,
     ensemble_rosters: bool,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    staffing_mode: int = 0,
+    nurses_per_shift: int = 8,
+    day_staffing: int = 10,
+    night_staffing: int = 5,
+    day_fraction: float = 0.5,
+    day_night_split_concentration: float = 8.0,
+    incident_regime: int = 0,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Fixed-R Monte Carlo: exactly R trials per grid cell.
+
+    staffing_mode: 0 = unconstrained, 1 = fixed, 2 = day_night
+    incident_regime: 0 = all shifts, 1 = day-only incidents, 2 = night-only incidents
 
     This version is fast for:
       - ensemble_rosters=False (your greased-lightning path)
@@ -555,6 +971,8 @@ def simulate_grid_fixed(
     if maxM < 0:
         maxM = 0
 
+    max_overlap_hist = np.zeros((I, J, maxM + 1), dtype=np.int64)
+
     # Sort columns by M so we can handle duplicates cleanly
     order = _argsort_int64(incident_grid)
 
@@ -568,11 +986,278 @@ def simulate_grid_fixed(
             q99_max[i, j0]  = 0.0
             mean_c[i, j0]   = 0.0
             prob_2plus[i, j0] = 0.0
+            max_overlap_hist[i, j0, 0] = R
         first_pos += 1
 
     # Nothing else to do?
     if first_pos >= J or maxM == 0:
-        return mean_max, q95_max, q99_max, mean_c, prob_2plus
+        return mean_max, q95_max, q99_max, mean_c, prob_2plus, max_overlap_hist
+
+    # -----------------------------
+    # CONSTRAINED STAFFING MODE
+    # -----------------------------
+    if staffing_mode > 0:
+        # Accumulators
+        sum_max = np.zeros((I, J), dtype=np.float64)
+        sum_c   = np.zeros((I, J), dtype=np.float64)
+        c2      = np.zeros((I, J), dtype=np.int64)
+        hist_max = max_overlap_hist
+
+        # Temp buffers
+        available = np.empty(N, dtype=np.float64)
+        prefix_max = np.empty(maxM, dtype=np.int64)
+        prefix_c   = np.empty(maxM, dtype=np.int64)
+
+        if staffing_mode == 2:
+            shift_types = _draw_shift_types(S, day_fraction)
+            incident_types = np.empty(maxM, dtype=np.int8)
+            day_weights = np.empty(N, dtype=np.float64)
+            night_weights = np.empty(N, dtype=np.float64)
+
+            if ensemble_rosters:
+                for i in range(I):
+                    mp = float(mean_presence_grid[i])
+                    day_target, night_target = _scaled_day_night_staff_targets(
+                        N, mp, day_staffing, night_staffing, day_fraction
+                    )
+                    slot_share = _slot_share_day(day_fraction, day_target, night_target)
+
+                    for r in range(R):
+                        rel_workloads = draw_relative_workloads(N, beta_a, beta_b)
+                        overall_probs = scale_workloads_to_probabilities(rel_workloads, mp, clip_max)
+                        day_shares = draw_day_night_shares(
+                            N, slot_share, day_night_split_concentration
+                        )
+                        build_day_night_weights(
+                            overall_probs,
+                            day_shares,
+                            N,
+                            day_fraction,
+                            day_target,
+                            night_target,
+                            clip_max,
+                            day_weights,
+                            night_weights,
+                        )
+
+                        if incident_regime == 1:
+                            for m in range(maxM):
+                                incident_types[m] = 1
+                        elif incident_regime == 2:
+                            for m in range(maxM):
+                                incident_types[m] = 0
+                        else:
+                            incidents = _draw_incident_shifts(S, maxM)
+                            _incident_shift_types(shift_types, incidents, incident_types)
+                        _constrained_prefix_overlaps_day_night(
+                            N,
+                            day_weights,
+                            night_weights,
+                            available,
+                            incident_types,
+                            day_target,
+                            night_target,
+                            T,
+                            prefix_max,
+                            prefix_c,
+                        )
+
+                        jpos = first_pos
+                        while jpos < J:
+                            M_val = int(incident_grid[order[jpos]])
+                            if M_val > maxM:
+                                M_val = maxM
+                            m_idx = M_val - 1
+
+                            mx = int(prefix_max[m_idx])
+                            c_ge_T = int(prefix_c[m_idx])
+
+                            targetM_raw = int(incident_grid[order[jpos]])
+                            while jpos < J and int(incident_grid[order[jpos]]) == targetM_raw:
+                                jcol = int(order[jpos])
+                                sum_max[i, jcol] += mx
+                                sum_c[i, jcol] += c_ge_T
+                                if c_ge_T >= 2:
+                                    c2[i, jcol] += 1
+                                hist_max[i, jcol, mx] += 1
+                                jpos += 1
+            else:
+                rel_workloads = draw_relative_workloads(N, beta_a, beta_b)
+                base_slot_share = _slot_share_day(
+                    day_fraction, float(day_staffing), float(night_staffing)
+                )
+                day_shares = draw_day_night_shares(
+                    N, base_slot_share, day_night_split_concentration
+                )
+
+                for i in range(I):
+                    mp = float(mean_presence_grid[i])
+                    overall_probs = scale_workloads_to_probabilities(rel_workloads, mp, clip_max)
+                    day_target, night_target = _scaled_day_night_staff_targets(
+                        N, mp, day_staffing, night_staffing, day_fraction
+                    )
+                    build_day_night_weights(
+                        overall_probs,
+                        day_shares,
+                        N,
+                        day_fraction,
+                        day_target,
+                        night_target,
+                        clip_max,
+                        day_weights,
+                        night_weights,
+                    )
+
+                    for r in range(R):
+                        if incident_regime == 1:
+                            for m in range(maxM):
+                                incident_types[m] = 1
+                        elif incident_regime == 2:
+                            for m in range(maxM):
+                                incident_types[m] = 0
+                        else:
+                            incidents = _draw_incident_shifts(S, maxM)
+                            _incident_shift_types(shift_types, incidents, incident_types)
+                        _constrained_prefix_overlaps_day_night(
+                            N,
+                            day_weights,
+                            night_weights,
+                            available,
+                            incident_types,
+                            day_target,
+                            night_target,
+                            T,
+                            prefix_max,
+                            prefix_c,
+                        )
+
+                        jpos = first_pos
+                        while jpos < J:
+                            M_val = int(incident_grid[order[jpos]])
+                            if M_val > maxM:
+                                M_val = maxM
+                            m_idx = M_val - 1
+
+                            mx = int(prefix_max[m_idx])
+                            c_ge_T = int(prefix_c[m_idx])
+
+                            targetM_raw = int(incident_grid[order[jpos]])
+                            while jpos < J and int(incident_grid[order[jpos]]) == targetM_raw:
+                                jcol = int(order[jpos])
+                                sum_max[i, jcol] += mx
+                                sum_c[i, jcol] += c_ge_T
+                                if c_ge_T >= 2:
+                                    c2[i, jcol] += 1
+                                hist_max[i, jcol, mx] += 1
+                                jpos += 1
+
+            for j in range(J):
+                Mj = int(incident_grid[j])
+                if Mj <= 0:
+                    continue
+                if Mj > maxM:
+                    Mj = maxM
+                for i in range(I):
+                    mean_max[i, j] = sum_max[i, j] / R
+                    mean_c[i, j]   = sum_c[i, j] / R
+                    prob_2plus[i, j] = c2[i, j] / R
+                    q95_max[i, j]  = _higher_quantile_from_hist(hist_max[i, j, :], q95, R)
+                    q99_max[i, j]  = _higher_quantile_from_hist(hist_max[i, j, :], q99, R)
+
+            return mean_max, q95_max, q99_max, mean_c, prob_2plus, hist_max
+
+        if ensemble_rosters:
+            # Redraw workloads each trial
+            for i in range(I):
+                mp = float(mean_presence_grid[i])
+                for r in range(R):
+                    K = draw_workloads_K(S, N, beta_a, beta_b, mp, clip_max)
+                    # Weights = K (integer shift counts serve as weights)
+                    weights = np.empty(N, dtype=np.float64)
+                    for n in range(N):
+                        weights[n] = float(K[n]) if K[n] > 0 else 0.001
+
+                    _constrained_prefix_overlaps(
+                        N, weights, available, maxM, T,
+                        staffing_mode, nurses_per_shift,
+                        day_staffing, night_staffing, day_fraction,
+                        prefix_max, prefix_c,
+                    )
+
+                    # Emit all requested M columns
+                    jpos = first_pos
+                    while jpos < J:
+                        M_val = int(incident_grid[order[jpos]])
+                        if M_val > maxM:
+                            M_val = maxM
+                        m_idx = M_val - 1
+
+                        mx = int(prefix_max[m_idx])
+                        c_ge_T = int(prefix_c[m_idx])
+
+                        targetM_raw = int(incident_grid[order[jpos]])
+                        while jpos < J and int(incident_grid[order[jpos]]) == targetM_raw:
+                            jcol = int(order[jpos])
+                            sum_max[i, jcol] += mx
+                            sum_c[i, jcol] += c_ge_T
+                            if c_ge_T >= 2:
+                                c2[i, jcol] += 1
+                            hist_max[i, jcol, mx] += 1
+                            jpos += 1
+        else:
+            # Fixed ward structure: draw relative workloads once, scale per presence
+            rel_workloads = draw_relative_workloads(N, beta_a, beta_b)
+
+            for i in range(I):
+                mp = float(mean_presence_grid[i])
+                K = scale_workloads_to_presence(S, rel_workloads, mp, clip_max)
+                weights = np.empty(N, dtype=np.float64)
+                for n in range(N):
+                    weights[n] = float(K[n]) if K[n] > 0 else 0.001
+
+                for r in range(R):
+                    _constrained_prefix_overlaps(
+                        N, weights, available, maxM, T,
+                        staffing_mode, nurses_per_shift,
+                        day_staffing, night_staffing, day_fraction,
+                        prefix_max, prefix_c,
+                    )
+
+                    jpos = first_pos
+                    while jpos < J:
+                        M_val = int(incident_grid[order[jpos]])
+                        if M_val > maxM:
+                            M_val = maxM
+                        m_idx = M_val - 1
+
+                        mx = int(prefix_max[m_idx])
+                        c_ge_T = int(prefix_c[m_idx])
+
+                        targetM_raw = int(incident_grid[order[jpos]])
+                        while jpos < J and int(incident_grid[order[jpos]]) == targetM_raw:
+                            jcol = int(order[jpos])
+                            sum_max[i, jcol] += mx
+                            sum_c[i, jcol] += c_ge_T
+                            if c_ge_T >= 2:
+                                c2[i, jcol] += 1
+                            hist_max[i, jcol, mx] += 1
+                            jpos += 1
+
+        # Finalize means + quantiles
+        for j in range(J):
+            Mj = int(incident_grid[j])
+            if Mj <= 0:
+                continue
+            if Mj > maxM:
+                Mj = maxM
+            for i in range(I):
+                mean_max[i, j] = sum_max[i, j] / R
+                mean_c[i, j]   = sum_c[i, j] / R
+                prob_2plus[i, j] = c2[i, j] / R
+                q95_max[i, j]  = _higher_quantile_from_hist(hist_max[i, j, :], q95, R)
+                q99_max[i, j]  = _higher_quantile_from_hist(hist_max[i, j, :], q99, R)
+
+        return mean_max, q95_max, q99_max, mean_c, prob_2plus, hist_max
 
     # -----------------------------
     # FAST ensemble_rosters=True
@@ -582,7 +1267,7 @@ def simulate_grid_fixed(
         sum_max = np.zeros((I, J), dtype=np.float64)
         sum_c   = np.zeros((I, J), dtype=np.float64)
         c2      = np.zeros((I, J), dtype=np.int64)
-        hist_max = np.zeros((I, J, maxM + 1), dtype=np.int64)
+        hist_max = max_overlap_hist
 
         # Temp buffers per trial
         overlaps = np.empty((N, maxM), dtype=np.int16)     # overlaps[n, m_idx]
@@ -670,7 +1355,7 @@ def simulate_grid_fixed(
                 q95_max[i, j]  = _higher_quantile_from_hist(hist_max[i, j, :], q95, R)
                 q99_max[i, j]  = _higher_quantile_from_hist(hist_max[i, j, :], q99, R)
 
-        return mean_max, q95_max, q99_max, mean_c, prob_2plus
+        return mean_max, q95_max, q99_max, mean_c, prob_2plus, hist_max
 
     # -----------------------------
     # ensemble_rosters=False
@@ -702,7 +1387,7 @@ def simulate_grid_fixed(
     sum_max = np.zeros((I, J), dtype=np.float64)
     sum_c = np.zeros((I, J), dtype=np.float64)
     c2 = np.zeros((I, J), dtype=np.int64)
-    hist_max = np.zeros((I, J, maxM + 1), dtype=np.int64)
+    hist_max = max_overlap_hist
 
     ov = np.zeros((I, N), dtype=np.int64)
 
@@ -759,7 +1444,7 @@ def simulate_grid_fixed(
             q95_max[i, j] = _higher_quantile_from_hist(hist_max[i, j, :], q95, R)
             q99_max[i, j] = _higher_quantile_from_hist(hist_max[i, j, :], q99, R)
 
-    return mean_max, q95_max, q99_max, mean_c, prob_2plus
+    return mean_max, q95_max, q99_max, mean_c, prob_2plus, hist_max
 
 # -----------------------------
 # Adaptive MC simulation
@@ -954,6 +1639,99 @@ def heatmap(data: np.ndarray, incident_grid: np.ndarray, mean_presence_grid: np.
 
 
 # -----------------------------
+# Regime pack helpers
+# -----------------------------
+
+def staffing_mode_to_int(mode: str) -> int:
+    return {"unconstrained": 0, "fixed": 1, "day_night": 2}.get(mode, 0)
+
+
+def regime_shift_count(cfg: Config, regime: str) -> int:
+    if regime == "day":
+        count = int(round(cfg.S * cfg.day_fraction))
+    elif regime == "night":
+        count = int(round(cfg.S * (1.0 - cfg.day_fraction)))
+    else:
+        count = cfg.S
+    return max(1, count)
+
+
+def regime_presence_grid(cfg: Config, axis_mean_presence_grid: np.ndarray, regime: str) -> np.ndarray:
+    if regime == "all":
+        return np.array(axis_mean_presence_grid, dtype=np.float64)
+
+    base_avg_staff = cfg.day_fraction * cfg.day_staffing + (1.0 - cfg.day_fraction) * cfg.night_staffing
+    if base_avg_staff <= 0.0:
+        return np.array(axis_mean_presence_grid, dtype=np.float64)
+
+    regime_staff = cfg.day_staffing if regime == "day" else cfg.night_staffing
+    factor = regime_staff / base_avg_staff
+    scaled = np.array(axis_mean_presence_grid, dtype=np.float64) * factor
+    return np.clip(scaled, 0.0, cfg.presence_clip_max)
+
+
+def simulate_regime_pack(
+    cfg: Config,
+    incident_grid: np.ndarray,
+    axis_mean_presence_grid: np.ndarray,
+    regime: str,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, Config, int, str]:
+    sim_cfg = cfg
+    sim_mean_presence_grid = np.array(axis_mean_presence_grid, dtype=np.float64)
+    incident_regime = 0
+
+    if regime == "all":
+        regime_note = "Combined day and night shifts under the selected staffing model."
+        effective_shift_count = cfg.S
+    elif cfg.staffing_mode == "day_night":
+        incident_regime = 1 if regime == "day" else 2
+        effective_shift_count = regime_shift_count(cfg, regime)
+        regime_note = (
+            "Incident shifts are restricted to the selected regime while the full "
+            "day/night roster structure remains in place."
+        )
+    else:
+        effective_shift_count = regime_shift_count(cfg, regime)
+        sim_mean_presence_grid = regime_presence_grid(cfg, axis_mean_presence_grid, regime)
+        if cfg.staffing_mode == "fixed":
+            staff = cfg.day_staffing if regime == "day" else cfg.night_staffing
+            sim_cfg = replace(cfg, S=effective_shift_count, nurses_per_shift=staff)
+            regime_note = (
+                "Approximate subset-shift view: incidents are limited to the selected "
+                "regime and fixed staffing uses that regime's headcount."
+            )
+        else:
+            sim_cfg = replace(cfg, S=effective_shift_count)
+            regime_note = (
+                "Approximate subset-shift view: incidents are limited to the selected "
+                "regime and mean presence is rescaled to that regime's staffing level."
+            )
+
+    outputs = simulate_grid_fixed(
+        S=sim_cfg.S,
+        N=sim_cfg.N,
+        beta_a=sim_cfg.beta_a,
+        beta_b=sim_cfg.beta_b,
+        incident_grid=incident_grid,
+        mean_presence_grid=sim_mean_presence_grid,
+        R=sim_cfg.R,
+        T=sim_cfg.threshold_T,
+        q95=sim_cfg.q95,
+        q99=sim_cfg.q99,
+        clip_max=sim_cfg.presence_clip_max,
+        ensemble_rosters=sim_cfg.ensemble_rosters,
+        staffing_mode=staffing_mode_to_int(sim_cfg.staffing_mode),
+        nurses_per_shift=sim_cfg.nurses_per_shift,
+        day_staffing=sim_cfg.day_staffing,
+        night_staffing=sim_cfg.night_staffing,
+        day_fraction=sim_cfg.day_fraction,
+        day_night_split_concentration=sim_cfg.day_night_split_concentration,
+        incident_regime=incident_regime,
+    )
+    return outputs + (sim_cfg, effective_shift_count, regime_note)
+
+
+# -----------------------------
 # Manifold export (JSON)
 # -----------------------------
 
@@ -964,6 +1742,13 @@ def export_manifold_json(
     q95_max: np.ndarray,
     q99_max: np.ndarray,
     cfg: Config,
+    *,
+    max_overlap_hist: np.ndarray | None = None,
+    view_regime: str = "all",
+    fixed_name: str = "manifold_roster_pack.json",
+    total_shift_count: int | None = None,
+    regime_shift_total: int | None = None,
+    regime_note: str = "",
 ) -> str:
     """Export the manifold pack for a lightweight JS viewer."""
     if len(incident_grid) < 50:
@@ -971,15 +1756,24 @@ def export_manifold_json(
 
     out_dir = os.getcwd()
     mode = _mode_tag(cfg)
-    fname = f"{cfg.export_json_stem}_{mode}_R{cfg.R}.json"
+    regime_suffix = "" if view_regime == "all" else f"_{view_regime}"
+    fname = f"{cfg.export_json_stem}{regime_suffix}_{mode}_R{cfg.R}.json"
     path = os.path.join(out_dir, fname)
 
+    if total_shift_count is None:
+        total_shift_count = cfg.S
+    if regime_shift_total is None:
+        regime_shift_total = total_shift_count
+
     pack = {
-        "version": "1.3",
+        "version": "1.7",
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "mode": mode,
+        "view_regime": view_regime,
         "params": {
             "S": cfg.S,
+            "S_total": total_shift_count,
+            "S_regime": regime_shift_total,
             "N": cfg.N,
             "beta_a": cfg.beta_a,
             "beta_b": cfg.beta_b,
@@ -989,6 +1783,14 @@ def export_manifold_json(
             "q95": cfg.q95,
             "q99": cfg.q99,
             "seed": cfg.seed,
+            "staffing_mode": cfg.staffing_mode,
+            "nurses_per_shift": cfg.nurses_per_shift,
+            "day_staffing": cfg.day_staffing,
+            "night_staffing": cfg.night_staffing,
+            "day_fraction": cfg.day_fraction,
+            "day_night_split_concentration": cfg.day_night_split_concentration,
+            "view_regime": view_regime,
+            "regime_note": regime_note,
         },
         "axes": {
             "incident_grid": [int(x) for x in incident_grid],
@@ -1002,6 +1804,14 @@ def export_manifold_json(
         },
     }
 
+    if max_overlap_hist is not None and cfg.export_max_overlap_hist:
+        pack["distribution"] = {
+            "kind": "max_overlap_histogram",
+            "shape": [int(x) for x in max_overlap_hist.shape],
+            "max_overlap_hist": [int(x) for x in max_overlap_hist.ravel(order="C")],
+            "note": "Histogram counts for the simulated max-overlap distribution at each (mean presence, incident count) cell.",
+        }
+
     with open(path, "w", encoding="utf-8") as f:
         if cfg.export_pretty:
             json.dump(pack, f, ensure_ascii=False, indent=2)
@@ -1010,15 +1820,14 @@ def export_manifold_json(
 
     print(f"Exported manifold JSON: {path}")
     
-    # Also save a fixed-name copy for easy HTML viewer integration
-    fixed_name = "manifold_roster_pack.json"
-    fixed_path = os.path.join(out_dir, fixed_name)
-    with open(fixed_path, "w", encoding="utf-8") as f:
-        if cfg.export_pretty:
-            json.dump(pack, f, ensure_ascii=False, indent=2)
-        else:
-            json.dump(pack, f, ensure_ascii=False, separators=(",", ":"))
-    print(f"Exported fixed-name copy: {fixed_path}")
+    if fixed_name:
+        fixed_path = os.path.join(out_dir, fixed_name)
+        with open(fixed_path, "w", encoding="utf-8") as f:
+            if cfg.export_pretty:
+                json.dump(pack, f, ensure_ascii=False, indent=2)
+            else:
+                json.dump(pack, f, ensure_ascii=False, separators=(",", ":"))
+        print(f"Exported fixed-name copy: {fixed_path}")
     
     return path
 
@@ -1035,15 +1844,28 @@ def main() -> None:
     incident_grid = np.array(cfg.get_incident_grid(), dtype=np.int64)
     mean_presence_grid = np.array(cfg.mean_presence_grid, dtype=np.float64)
 
+    staffing_mode_int = staffing_mode_to_int(cfg.staffing_mode)
+
     total_cells = len(mean_presence_grid) * len(incident_grid)
     print(f"Grid: {len(mean_presence_grid)} × {len(incident_grid)} = {total_cells} cells")
     print(f"Rosters: {'Ensemble (new each trial)' if cfg.ensemble_rosters else 'Fixed per cell'}")
+    if staffing_mode_int > 0:
+        if staffing_mode_int == 1:
+            print(f"Staffing: Fixed shift size = {cfg.nurses_per_shift}")
+        else:
+            print(
+                f"Staffing: Day/Night stratified "
+                f"(day={cfg.day_staffing}, night={cfg.night_staffing}, "
+                f"day_frac={cfg.day_fraction}, split_k={cfg.day_night_split_concentration})"
+            )
+    else:
+        print(f"Staffing: Unconstrained (independent)")
     print(f"Trials: R={cfg.R}")
     print()
 
     t0 = time.time()
 
-    mean_max, q95_max, q99_max, mean_c, prob_2plus = simulate_grid_fixed(
+    mean_max, q95_max, q99_max, mean_c, prob_2plus, max_overlap_hist = simulate_grid_fixed(
         S=cfg.S,
         N=cfg.N,
         beta_a=cfg.beta_a,
@@ -1056,6 +1878,13 @@ def main() -> None:
         q99=cfg.q99,
         clip_max=cfg.presence_clip_max,
         ensemble_rosters=cfg.ensemble_rosters,
+        staffing_mode=staffing_mode_int,
+        nurses_per_shift=cfg.nurses_per_shift,
+        day_staffing=cfg.day_staffing,
+        night_staffing=cfg.night_staffing,
+        day_fraction=cfg.day_fraction,
+        day_night_split_concentration=cfg.day_night_split_concentration,
+        incident_regime=0,
     )
 
     dt = time.time() - t0
@@ -1063,7 +1892,51 @@ def main() -> None:
 
     # Export
     if cfg.export:
-        export_manifold_json(incident_grid, mean_presence_grid, mean_max, q95_max, q99_max, cfg)
+        export_manifold_json(
+            incident_grid,
+            mean_presence_grid,
+            mean_max,
+            q95_max,
+            q99_max,
+            cfg,
+            max_overlap_hist=max_overlap_hist,
+            view_regime="all",
+            fixed_name="manifold_roster_pack.json",
+            total_shift_count=cfg.S,
+            regime_shift_total=cfg.S,
+            regime_note="Combined day and night shifts under the selected staffing model.",
+        )
+
+        if cfg.export_regime_packs and cfg.staffing_mode == "day_night":
+            for regime in ("day", "night"):
+                print(f"Rendering {regime}-only manifold pack...")
+                t_regime = time.time()
+                (
+                    regime_mean_max,
+                    regime_q95_max,
+                    regime_q99_max,
+                    _regime_mean_c,
+                    _regime_prob_2plus,
+                    regime_hist,
+                    regime_cfg,
+                    regime_shift_total,
+                    regime_note,
+                ) = simulate_regime_pack(cfg, incident_grid, mean_presence_grid, regime)
+                print(f"{regime.capitalize()} pack done in {time.time() - t_regime:.2f}s")
+                export_manifold_json(
+                    incident_grid,
+                    mean_presence_grid,
+                    regime_mean_max,
+                    regime_q95_max,
+                    regime_q99_max,
+                    regime_cfg,
+                    max_overlap_hist=regime_hist,
+                    view_regime=regime,
+                    fixed_name=f"manifold_roster_pack_{regime}.json",
+                    total_shift_count=cfg.S,
+                    regime_shift_total=regime_shift_total,
+                    regime_note=regime_note,
+                )
 
     # Intercept readout
     if cfg.show_intercept:

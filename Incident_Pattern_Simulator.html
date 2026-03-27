@@ -742,11 +742,36 @@
             </select>
 
             <div id="shift-options">
-                <label>Shift Count Logic <span class="help-icon" title="Fixed: Nurses work exactly the same shifts every trial. Random: Workload varies per trial.">(?)</span></label>
+                <label>Shift Count Logic <span class="help-icon" title="Fixed: Nurses work exactly the same shifts every trial. Random: Workload varies per trial. Disabled when staffing constraint is active (shift counts are determined by the constraint).">(?)</span></label>
                 <select id="shift-logic">
                     <option value="fixed">Fixed Totals (Conditional)</option>
                     <option value="random">Random Totals (Generative)</option>
                 </select>
+            </div>
+
+            <div id="staffing-constraint-options">
+                <label>Staffing Constraint <span class="help-icon" title="Controls whether shifts have a fixed headcount. Unconstrained: nurses assigned independently per shift (current model). Fixed Shift Size: each shift has exactly N nurses drawn from the pool. Day/Night Stratified: two shift regimes with different headcounts and separate nurse-level day/night propensities, so some nurses naturally become more day-heavy or night-heavy (cf. Gill, 2026). Constrained models produce lower variance in overlap counts, strengthening the defence case.">(?)</span></label>
+                <select id="staffing-mode">
+                    <option value="unconstrained">Unconstrained (Independent)</option>
+                    <option value="fixed">Fixed Shift Size</option>
+                    <option value="day_night">Day/Night Stratified</option>
+                </select>
+
+                <div id="staffing-fixed-controls" style="display: none;">
+                    <label>Nurses per Shift <span id="val-nurses-per-shift" class="value-display">8</span> <span class="help-icon" title="Number of nurses assigned to each shift. Real wards typically have 5–12 nurses per shift depending on acuity.">(?)</span></label>
+                    <input type="range" id="param-nurses-per-shift" min="4" max="15" step="1" value="8">
+                </div>
+
+                <div id="staffing-daynight-controls" style="display: none;">
+                    <label>Day Shift Staffing <span id="val-day-staffing" class="value-display">10</span> <span class="help-icon" title="Number of nurses on each day shift. Day shifts typically have more staff than night shifts.">(?)</span></label>
+                    <input type="range" id="param-day-staffing" min="5" max="15" step="1" value="10">
+
+                    <label>Night Shift Staffing <span id="val-night-staffing" class="value-display">5</span> <span class="help-icon" title="Number of nurses on each night shift. Night shifts typically have fewer staff.">(?)</span></label>
+                    <input type="range" id="param-night-staffing" min="2" max="8" step="1" value="5">
+
+                    <label>Day Shift Ratio <span id="val-day-ratio" class="value-display">50%</span> <span class="help-icon" title="Proportion of shifts that are day shifts. 50% means equal day/night split (standard 12-hour shift pattern).">(?)</span></label>
+                    <input type="range" id="param-day-ratio" min="20" max="80" step="5" value="50">
+                </div>
             </div>
 
             <label>RNG Seed <span class="help-icon" title="Blank = fresh random seed each run. Enter an integer for reproducible results.">(?)</span></label>
@@ -756,7 +781,8 @@
                 <strong>Definitions:</strong><br>
                 • <b>730 shifts</b> = 365 days × 2 shifts/day<br>
                 • Incidents placed without replacement<br>
-                • Fixed Totals: round(p × 730) shifts per nurse
+                • Fixed Totals: round(p × 730) shifts per nurse<br>
+                • Day/night mode keeps exact shift headcounts and lets nurses differ by day-vs-night exposure
             </div>
         </div>
     </div>
@@ -1035,6 +1061,8 @@
         return count;
     }
 
+    const DAY_NIGHT_SPLIT_CONCENTRATION = 8;
+
     function probToHours(p) {
         return Math.round(p * 14 * 12);
     }
@@ -1050,6 +1078,130 @@
             lower: Math.max(0, (centre - margin) / denom),
             upper: Math.min(1, (centre + margin) / denom)
         };
+    }
+
+    // Weighted sampling without replacement: draw k nurses from nNurses,
+    // with probability proportional to weights. Records overlap counts directly.
+    // weights: Float64Array of nurse workload weights
+    // available: Float64Array buffer (same length as weights, reused across calls)
+    // overlapCounts: Int16Array to increment for each selected nurse
+    function weightedDrawTeam(rng, weights, available, k, nNurses, overlapCounts) {
+        let totalWeight = 0;
+        for (let i = 0; i < nNurses; i++) {
+            available[i] = weights[i];
+            totalWeight += weights[i];
+        }
+
+        for (let d = 0; d < k; d++) {
+            if (totalWeight <= 0) break;
+            let r = rng() * totalWeight;
+            let cum = 0;
+            let chosen = 0;
+            for (let i = 0; i < nNurses; i++) {
+                if (available[i] <= 0) continue;
+                cum += available[i];
+                if (r <= cum) {
+                    chosen = i;
+                    break;
+                }
+            }
+            overlapCounts[chosen]++;
+            totalWeight -= available[chosen];
+            available[chosen] = 0;
+        }
+    }
+
+    function averageArray(values) {
+        let sum = 0;
+        for (let i = 0; i < values.length; i++) sum += values[i];
+        return values.length > 0 ? sum / values.length : 0;
+    }
+
+    function drawShiftTypes(rng, nShifts, dayRatio) {
+        const shiftTypes = new Uint8Array(nShifts);
+        const dayCount = Math.max(0, Math.min(nShifts, Math.round(nShifts * dayRatio)));
+        for (let i = 0; i < dayCount; i++) shiftTypes[i] = 1;
+        for (let i = 0; i < nShifts - 1; i++) {
+            const j = i + Math.floor(rng() * (nShifts - i));
+            const temp = shiftTypes[i];
+            shiftTypes[i] = shiftTypes[j];
+            shiftTypes[j] = temp;
+        }
+        return shiftTypes;
+    }
+
+    function scaledDayNightStaffing(nNurses, meanPresence, dayStaffing, nightStaffing, dayRatio) {
+        const baseAverage = dayRatio * dayStaffing + (1 - dayRatio) * nightStaffing;
+        const targetAverage = meanPresence * nNurses;
+
+        if (baseAverage <= 0) {
+            return { dayTarget: targetAverage, nightTarget: targetAverage };
+        }
+
+        const scale = targetAverage / baseAverage;
+        return {
+            dayTarget: Math.max(0, Math.min(nNurses, dayStaffing * scale)),
+            nightTarget: Math.max(0, Math.min(nNurses, nightStaffing * scale))
+        };
+    }
+
+    function slotShareDay(dayRatio, dayStaffTarget, nightStaffTarget) {
+        const totalSlots = dayRatio * dayStaffTarget + (1 - dayRatio) * nightStaffTarget;
+        if (totalSlots <= 0) return dayRatio;
+        const share = (dayRatio * dayStaffTarget) / totalSlots;
+        return Math.max(0.001, Math.min(0.999, share));
+    }
+
+    function sampleFractionalTeamSize(rng, targetSize, nNurses) {
+        if (targetSize <= 0) return 0;
+        if (targetSize >= nNurses) return nNurses;
+        const lo = Math.floor(targetSize);
+        const frac = targetSize - lo;
+        let size = lo;
+        if (rng() < frac) size += 1;
+        return Math.max(0, Math.min(nNurses, size));
+    }
+
+    function buildDayNightWeights(overallProbs, rng, dayRatio, dayStaffTarget, nightStaffTarget) {
+        const nNurses = overallProbs.length;
+        const dayWeights = new Float64Array(nNurses);
+        const nightWeights = new Float64Array(nNurses);
+        const shareMean = slotShareDay(dayRatio, dayStaffTarget, nightStaffTarget);
+        const conc = Math.max(2, DAY_NIGHT_SPLIT_CONCENTRATION);
+        const a = Math.max(0.001, shareMean * conc);
+        const b = Math.max(0.001, (1 - shareMean) * conc);
+        const avgDayRate = dayStaffTarget > 0 ? dayStaffTarget / nNurses : 0;
+        const avgNightRate = nightStaffTarget > 0 ? nightStaffTarget / nNurses : 0;
+
+        let sumDay = 0;
+        let sumNight = 0;
+
+        for (let i = 0; i < nNurses; i++) {
+            const p = Math.max(0, Math.min(0.999, overallProbs[i]));
+            const shareDay = Math.max(0.001, Math.min(0.999, randomBeta(a, b, rng)));
+            let dayRate = 0;
+            let nightRate = 0;
+
+            if (dayRatio > 0) dayRate = Math.min(0.999, (p * shareDay) / dayRatio);
+            if (dayRatio < 1) nightRate = Math.min(0.999, (p * (1 - shareDay)) / (1 - dayRatio));
+
+            dayWeights[i] = avgDayRate > 0 ? dayRate / avgDayRate : 0;
+            nightWeights[i] = avgNightRate > 0 ? nightRate / avgNightRate : 0;
+            sumDay += dayWeights[i];
+            sumNight += nightWeights[i];
+        }
+
+        if (sumDay > 0) {
+            const scaleDay = nNurses / sumDay;
+            for (let i = 0; i < nNurses; i++) dayWeights[i] *= scaleDay;
+        }
+
+        if (sumNight > 0) {
+            const scaleNight = nNurses / sumNight;
+            for (let i = 0; i < nNurses; i++) nightWeights[i] *= scaleNight;
+        }
+
+        return { dayWeights, nightWeights };
     }
 
     // Hypergeometric expected value
@@ -1092,7 +1244,15 @@
         acuityGroup: document.getElementById('acuity-group'),
         acuityDesc: document.getElementById('acuity-desc'),
         shiftOptions: document.getElementById('shift-options'),
-        selectionControls: document.getElementById('selection-controls')
+        selectionControls: document.getElementById('selection-controls'),
+        staffingMode: document.getElementById('staffing-mode'),
+        nursesPerShift: document.getElementById('param-nurses-per-shift'),
+        dayStaffing: document.getElementById('param-day-staffing'),
+        nightStaffing: document.getElementById('param-night-staffing'),
+        dayRatio: document.getElementById('param-day-ratio'),
+        staffingConstraintOptions: document.getElementById('staffing-constraint-options'),
+        staffingFixedControls: document.getElementById('staffing-fixed-controls'),
+        staffingDaynightControls: document.getElementById('staffing-daynight-controls')
     };
 
     const displays = {
@@ -1161,8 +1321,34 @@
 
     function updateModeUI() {
         const simMechanism = controls.simMode.value;
+        const staffingModeVal = controls.staffingMode.value;
 
         controls.shiftOptions.style.display = simMechanism === 'shift' ? 'block' : 'none';
+
+        // Staffing constraint controls - only visible in shift-based mode, not in Selection mode
+        const showStaffing = (simMechanism === 'shift' && currentMode !== 'selection');
+        controls.staffingConstraintOptions.style.display = showStaffing ? 'block' : 'none';
+
+        // Sub-controls: show fixed or day/night sliders based on staffing mode
+        controls.staffingFixedControls.style.display =
+            (showStaffing && staffingModeVal === 'fixed') ? 'block' : 'none';
+        controls.staffingDaynightControls.style.display =
+            (showStaffing && staffingModeVal === 'day_night') ? 'block' : 'none';
+
+        // Shift Count Logic is N/A when constrained staffing is active
+        // (shift counts are determined by the constraint, not by fixed/random logic)
+        const shiftLogicSelect = controls.shiftLogic;
+        if (showStaffing && staffingModeVal !== 'unconstrained') {
+            shiftLogicSelect.disabled = true;
+            shiftLogicSelect.style.opacity = '0.5';
+            shiftLogicSelect.style.cursor = 'not-allowed';
+            shiftLogicSelect.title = 'Shift counts are determined by the staffing constraint';
+        } else if (currentMode !== 'selection') {
+            shiftLogicSelect.disabled = false;
+            shiftLogicSelect.style.opacity = '1';
+            shiftLogicSelect.style.cursor = 'pointer';
+            shiftLogicSelect.title = '';
+        }
 
         // Panels that only make sense when a suspect is pre-designated
         const probPanel = document.getElementById('prob-panel');
@@ -1186,10 +1372,6 @@
         // Advanced Configuration controls - disabled in Selection Effect mode
         // Selection mode uses its own shift-based mechanism internally
         const simModeSelect = controls.simMode;
-        const shiftLogicSelect = controls.shiftLogic;
-
-        // Find parent containers - they use 'control-group' class, not 'form-group'
-        // But the selects are inside the collapsible content, so we style them directly
 
         if (currentMode === 'selection') {
             // Disable Overlap Mechanism selector
@@ -1222,11 +1404,6 @@
             simModeSelect.style.cursor = 'pointer';
             simModeSelect.title = '';
 
-            shiftLogicSelect.disabled = false;
-            shiftLogicSelect.style.opacity = '1';
-            shiftLogicSelect.style.cursor = 'pointer';
-            shiftLogicSelect.title = '';
-
             // Hide note
             const selectionNote = document.getElementById('selection-mode-note');
             if (selectionNote) selectionNote.style.display = 'none';
@@ -1237,6 +1414,21 @@
 
     controls.simMode.addEventListener('change', updateModeUI);
     controls.shiftLogic.addEventListener('change', updateModeUI);
+    controls.staffingMode.addEventListener('change', updateModeUI);
+
+    // Staffing constraint slider listeners
+    controls.nursesPerShift.addEventListener('input', (e) => {
+        document.getElementById('val-nurses-per-shift').textContent = e.target.value;
+    });
+    controls.dayStaffing.addEventListener('input', (e) => {
+        document.getElementById('val-day-staffing').textContent = e.target.value;
+    });
+    controls.nightStaffing.addEventListener('input', (e) => {
+        document.getElementById('val-night-staffing').textContent = e.target.value;
+    });
+    controls.dayRatio.addEventListener('input', (e) => {
+        document.getElementById('val-day-ratio').textContent = e.target.value + '%';
+    });
 
     controls.preset.addEventListener('change', (e) => {
         const val = e.target.value;
@@ -1423,15 +1615,22 @@
         const selectionBiasRaw = parseFloat(controls.selbias.value) / 100;
         const selectionBias = Math.min(0.999, Math.max(0.001, selectionBiasRaw));
 
+        // Staffing constraint parameters
+        const staffingMode = controls.staffingMode.value;
+        const nursesPerShift = parseInt(controls.nursesPerShift.value);
+        const dayStaffing = parseInt(controls.dayStaffing.value);
+        const nightStaffing = parseInt(controls.nightStaffing.value);
+        const dayRatio = parseInt(controls.dayRatio.value) / 100;
+
         setTimeout(() => {
             let data;
 
             if (currentMode === 'selection') {
                 data = executeSelectionEffect(rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta, suspectPresenceRate, poolSize, selectionBias);
             } else if (currentMode === 'undesignated') {
-                data = executeUndesignated(mode, shiftLogic, rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta);
+                data = executeUndesignated(mode, shiftLogic, rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta, staffingMode, nursesPerShift, dayStaffing, nightStaffing, dayRatio);
             } else {
-                data = executeStandard(mode, shiftLogic, rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta, suspectPresenceRate, acuityPercent);
+                data = executeStandard(mode, shiftLogic, rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta, suspectPresenceRate, acuityPercent, staffingMode, nursesPerShift, dayStaffing, nightStaffing, dayRatio);
             }
 
             lastSimData = data;
@@ -1444,9 +1643,10 @@
         }, 50);
     }
 
-    function executeStandard(mode, shiftLogic, rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta, suspectPresenceRate, acuityPercent) {
+    function executeStandard(mode, shiftLogic, rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta, suspectPresenceRate, acuityPercent, staffingMode, nursesPerShift, dayStaffing, nightStaffing, dayRatio) {
         // Compute mean from alpha/beta (this is the ward mean workload)
         const mean = alpha / (alpha + beta);
+        const useConstrained = (staffingMode !== 'unconstrained' && mode !== 'binomial');
 
         // Generate 37 other nurses
         let probs = [];
@@ -1472,6 +1672,30 @@
 
         let shiftDeck = new Int16Array(nShifts);
 
+        // Pre-allocate buffers for constrained mode
+        let weights, available, shiftTypes = null, cachedDayNight = null;
+        if (useConstrained) {
+            weights = new Float64Array(nNurses);
+            available = new Float64Array(nNurses);
+            for (let n = 0; n < nNurses; n++) weights[n] = probs[n];
+            if (staffingMode === 'day_night') {
+                const meanPresenceActual = averageArray(probs);
+                const staffingTargets = scaledDayNightStaffing(
+                    nNurses, meanPresenceActual, dayStaffing, nightStaffing, dayRatio
+                );
+                const regimeWeights = buildDayNightWeights(
+                    probs, rng, dayRatio, staffingTargets.dayTarget, staffingTargets.nightTarget
+                );
+                shiftTypes = drawShiftTypes(rng, nShifts, dayRatio);
+                cachedDayNight = {
+                    dayWeights: regimeWeights.dayWeights,
+                    nightWeights: regimeWeights.nightWeights,
+                    dayTarget: staffingTargets.dayTarget,
+                    nightTarget: staffingTargets.nightTarget
+                };
+            }
+        }
+
         for (let t = 0; t < nTrials; t++) {
             let incidentSet = new Set();
             while (incidentSet.size < nIncidents) {
@@ -1481,49 +1705,85 @@
             let currentTrialMaxInnocent = -1;
             let currentTrialSuspect = -1;
 
-            for (let n = 0; n < nNurses; n++) {
-                let overlapCount = 0;
-                const isSuspect = (n === nNurses - 1);
-                const p = probs[n];
+            if (useConstrained) {
+                // Constrained staffing: incident shifts inherit a fixed day/night type,
+                // and each nurse can have different day-vs-night exposure.
+                let overlapCounts = new Int16Array(nNurses);
 
-                if (mode === 'binomial') {
-                    let pEff = p;
-                    if (isSuspect) {
-                        pEff = Math.min(0.99, p * (1 + acuityPercent));
-                    }
-                    for (let i = 0; i < nIncidents; i++) {
-                        if (rng() < pEff) overlapCount++;
-                    }
-                } else {
-                    let numShifts;
-                    if (shiftLogic === 'fixed') {
-                        numShifts = Math.round(p * nShifts);
+                for (let inc of incidentSet) {
+                    let teamSize;
+                    let activeWeights = weights;
+                    if (staffingMode === 'fixed') {
+                        teamSize = nursesPerShift;
                     } else {
-                        numShifts = randomBinomial(nShifts, p, rng);
+                        const isDay = shiftTypes[inc] === 1;
+                        activeWeights = isDay ? cachedDayNight.dayWeights : cachedDayNight.nightWeights;
+                        const teamTarget = isDay ? cachedDayNight.dayTarget : cachedDayNight.nightTarget;
+                        teamSize = sampleFractionalTeamSize(rng, teamTarget, nNurses);
                     }
-
-                    for (let k = 0; k < nShifts; k++) shiftDeck[k] = k;
-
-                    for (let i = 0; i < numShifts; i++) {
-                        let j = i + Math.floor(rng() * (nShifts - i));
-                        let temp = shiftDeck[i];
-                        shiftDeck[i] = shiftDeck[j];
-                        shiftDeck[j] = temp;
-
-                        if (incidentSet.has(shiftDeck[i])) {
-                            overlapCount++;
-                        }
+                    teamSize = Math.min(teamSize, nNurses);
+                    if (teamSize > 0) {
+                        weightedDrawTeam(rng, activeWeights, available, teamSize, nNurses, overlapCounts);
                     }
                 }
 
-                results[n][t] = overlapCount;
+                for (let n = 0; n < nNurses; n++) {
+                    results[n][t] = overlapCounts[n];
+                    if (n === nNurses - 1) {
+                        currentTrialSuspect = overlapCounts[n];
+                        suspectOverlapSum += overlapCounts[n];
+                    } else {
+                        if (overlapCounts[n] > currentTrialMaxInnocent) {
+                            currentTrialMaxInnocent = overlapCounts[n];
+                        }
+                    }
+                }
+            } else {
+                // UNCONSTRAINED: existing per-nurse independent sampling
+                for (let n = 0; n < nNurses; n++) {
+                    let overlapCount = 0;
+                    const isSuspect = (n === nNurses - 1);
+                    const p = probs[n];
 
-                if (isSuspect) {
-                    currentTrialSuspect = overlapCount;
-                    suspectOverlapSum += overlapCount;
-                } else {
-                    if (overlapCount > currentTrialMaxInnocent) {
-                        currentTrialMaxInnocent = overlapCount;
+                    if (mode === 'binomial') {
+                        let pEff = p;
+                        if (isSuspect) {
+                            pEff = Math.min(0.99, p * (1 + acuityPercent));
+                        }
+                        for (let i = 0; i < nIncidents; i++) {
+                            if (rng() < pEff) overlapCount++;
+                        }
+                    } else {
+                        let numShifts;
+                        if (shiftLogic === 'fixed') {
+                            numShifts = Math.round(p * nShifts);
+                        } else {
+                            numShifts = randomBinomial(nShifts, p, rng);
+                        }
+
+                        for (let k = 0; k < nShifts; k++) shiftDeck[k] = k;
+
+                        for (let i = 0; i < numShifts; i++) {
+                            let j = i + Math.floor(rng() * (nShifts - i));
+                            let temp = shiftDeck[i];
+                            shiftDeck[i] = shiftDeck[j];
+                            shiftDeck[j] = temp;
+
+                            if (incidentSet.has(shiftDeck[i])) {
+                                overlapCount++;
+                            }
+                        }
+                    }
+
+                    results[n][t] = overlapCount;
+
+                    if (isSuspect) {
+                        currentTrialSuspect = overlapCount;
+                        suspectOverlapSum += overlapCount;
+                    } else {
+                        if (overlapCount > currentTrialMaxInnocent) {
+                            currentTrialMaxInnocent = overlapCount;
+                        }
                     }
                 }
             }
@@ -1547,6 +1807,7 @@
             suspectShifts: suspectShifts,
             totalShifts: nShifts,
             nIncidents: nIncidents,
+            staffingMode: staffingMode,
             mode: 'standard'
         };
 
@@ -1693,13 +1954,25 @@
         return stats;
     }
 
-    function executeUndesignated(mode, shiftLogic, rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta) {
+    function executeUndesignated(mode, shiftLogic, rng, nNurses, nShifts, nIncidents, nTrials, alpha, beta, staffingMode, nursesPerShift, dayStaffing, nightStaffing, dayRatio) {
+        const useConstrained = (staffingMode !== 'unconstrained' && mode !== 'binomial');
+
         // All nurses from same distribution - no pre-designated suspect
         let maxOverlaps = new Int16Array(nTrials);
         let maxNurseIndices = new Int16Array(nTrials);
         let results = Array(nNurses).fill().map(() => new Int16Array(nTrials));
 
         let shiftDeck = new Int16Array(nShifts);
+
+        // Pre-allocate buffers for constrained mode
+        let weights, available, shiftTypes = null;
+        if (useConstrained) {
+            weights = new Float64Array(nNurses);
+            available = new Float64Array(nNurses);
+            if (staffingMode === 'day_night') {
+                shiftTypes = drawShiftTypes(rng, nShifts, dayRatio);
+            }
+        }
 
         for (let t = 0; t < nTrials; t++) {
             // Generate fresh nurse probabilities each trial
@@ -1718,37 +1991,84 @@
             let trialMaxOverlap = -1;
             let trialMaxNurse = -1;
 
-            for (let n = 0; n < nNurses; n++) {
-                let overlapCount = 0;
-                const p = probs[n];
-
-                if (mode === 'binomial') {
-                    for (let i = 0; i < nIncidents; i++) {
-                        if (rng() < p) overlapCount++;
-                    }
+            if (useConstrained) {
+                let overlapCounts = new Int16Array(nNurses);
+                let dayNight = null;
+                if (staffingMode === 'fixed') {
+                    for (let n = 0; n < nNurses; n++) weights[n] = probs[n];
                 } else {
-                    let numShifts;
-                    if (shiftLogic === 'fixed') {
-                        numShifts = Math.round(p * nShifts);
-                    } else {
-                        numShifts = randomBinomial(nShifts, p, rng);
-                    }
+                    const meanPresenceActual = averageArray(probs);
+                    const staffingTargets = scaledDayNightStaffing(
+                        nNurses, meanPresenceActual, dayStaffing, nightStaffing, dayRatio
+                    );
+                    const regimeWeights = buildDayNightWeights(
+                        probs, rng, dayRatio, staffingTargets.dayTarget, staffingTargets.nightTarget
+                    );
+                    dayNight = {
+                        dayWeights: regimeWeights.dayWeights,
+                        nightWeights: regimeWeights.nightWeights,
+                        dayTarget: staffingTargets.dayTarget,
+                        nightTarget: staffingTargets.nightTarget
+                    };
+                }
 
-                    for (let k = 0; k < nShifts; k++) shiftDeck[k] = k;
-                    for (let i = 0; i < numShifts; i++) {
-                        let j = i + Math.floor(rng() * (nShifts - i));
-                        let temp = shiftDeck[i];
-                        shiftDeck[i] = shiftDeck[j];
-                        shiftDeck[j] = temp;
-                        if (incidentSet.has(shiftDeck[i])) overlapCount++;
+                for (let inc of incidentSet) {
+                    let teamSize;
+                    let activeWeights = weights;
+                    if (staffingMode === 'fixed') {
+                        teamSize = nursesPerShift;
+                    } else {
+                        const isDay = shiftTypes[inc] === 1;
+                        activeWeights = isDay ? dayNight.dayWeights : dayNight.nightWeights;
+                        const teamTarget = isDay ? dayNight.dayTarget : dayNight.nightTarget;
+                        teamSize = sampleFractionalTeamSize(rng, teamTarget, nNurses);
+                    }
+                    teamSize = Math.min(teamSize, nNurses);
+                    if (teamSize > 0) {
+                        weightedDrawTeam(rng, activeWeights, available, teamSize, nNurses, overlapCounts);
                     }
                 }
 
-                results[n][t] = overlapCount;
+                for (let n = 0; n < nNurses; n++) {
+                    results[n][t] = overlapCounts[n];
+                    if (overlapCounts[n] > trialMaxOverlap) {
+                        trialMaxOverlap = overlapCounts[n];
+                        trialMaxNurse = n;
+                    }
+                }
+            } else {
+                for (let n = 0; n < nNurses; n++) {
+                    let overlapCount = 0;
+                    const p = probs[n];
 
-                if (overlapCount > trialMaxOverlap) {
-                    trialMaxOverlap = overlapCount;
-                    trialMaxNurse = n;
+                    if (mode === 'binomial') {
+                        for (let i = 0; i < nIncidents; i++) {
+                            if (rng() < p) overlapCount++;
+                        }
+                    } else {
+                        let numShifts;
+                        if (shiftLogic === 'fixed') {
+                            numShifts = Math.round(p * nShifts);
+                        } else {
+                            numShifts = randomBinomial(nShifts, p, rng);
+                        }
+
+                        for (let k = 0; k < nShifts; k++) shiftDeck[k] = k;
+                        for (let i = 0; i < numShifts; i++) {
+                            let j = i + Math.floor(rng() * (nShifts - i));
+                            let temp = shiftDeck[i];
+                            shiftDeck[i] = shiftDeck[j];
+                            shiftDeck[j] = temp;
+                            if (incidentSet.has(shiftDeck[i])) overlapCount++;
+                        }
+                    }
+
+                    results[n][t] = overlapCount;
+
+                    if (overlapCount > trialMaxOverlap) {
+                        trialMaxOverlap = overlapCount;
+                        trialMaxNurse = n;
+                    }
                 }
             }
 
@@ -1785,6 +2105,7 @@
             suspectShifts: avgShifts,
             totalShifts: nShifts,
             nIncidents: nIncidents,
+            staffingMode: staffingMode,
             mode: 'undesignated'
         };
 

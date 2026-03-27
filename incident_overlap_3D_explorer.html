@@ -102,6 +102,77 @@
       animation-delay: 0.2s;
     }
 
+    #rhs-tools {
+      position: absolute;
+      left: 50%;
+      top: var(--space-lg);
+      transform: translateX(-50%);
+      width: 430px;
+      max-width: calc(100% - 560px);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 12px 16px;
+      box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.08),
+        0 0 0 1px var(--border-subtle),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      animation: slideInCentered 0.8s var(--ease-out-expo) both;
+      animation-delay: 0.3s;
+    }
+
+    #rhs-tools .control-section {
+      margin-bottom: 0;
+    }
+
+    #rhs-tools .control-row {
+      margin-bottom: 0;
+    }
+
+    #rhs-tools .button-row {
+      justify-content: center;
+    }
+
+    #rhs-tools .interaction-card {
+      display: none;
+    }
+
+    #profileFloat {
+      position: absolute;
+      right: var(--space-lg);
+      top: 166px;
+      bottom: 170px;
+      transform: none;
+      width: 380px;
+      max-width: calc(100% - 500px);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      margin-top: 0;
+      padding: 14px 16px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.08),
+        0 0 0 1px var(--border-subtle),
+        inset 0 1px 0 rgba(255,255,255,0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      animation: slideIn 0.8s var(--ease-out-expo) both;
+      animation-delay: 0.35s;
+    }
+
+    .overbar {
+      display: inline-block;
+      text-decoration: overline;
+      text-decoration-thickness: 1.5px;
+      text-decoration-skip-ink: none;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
     @keyframes slideIn {
       from {
         opacity: 0;
@@ -110,6 +181,17 @@
       to {
         opacity: 1;
         transform: translateX(0) translateY(0);
+      }
+    }
+
+    @keyframes slideInCentered {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
       }
     }
 
@@ -206,6 +288,270 @@
       color: var(--text-muted);
       margin-top: 6px;
       font-style: italic;
+    }
+
+    .segmented-control {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      padding: 6px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.54);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+    }
+
+    .segment-btn {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--text-secondary);
+      border-radius: 999px;
+      padding: 9px 10px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: background 180ms ease, color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .segment-btn:hover:not(:disabled) {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.72);
+      transform: translateY(-1px);
+    }
+
+    .segment-btn.active {
+      background: rgba(122, 170, 255, 0.22);
+      color: rgba(0, 0, 0, 0.86);
+      box-shadow: 0 4px 12px rgba(122, 170, 255, 0.14);
+    }
+
+    .segment-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .regime-info {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.07);
+      background: rgba(255, 255, 255, 0.48);
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .view-btn {
+      appearance: none;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.62);
+      color: var(--text-secondary);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .view-btn:hover {
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+
+    .view-btn.active {
+      background: rgba(122, 170, 255, 0.20);
+      border-color: rgba(122, 170, 255, 0.35);
+      color: rgba(0, 0, 0, 0.82);
+    }
+
+    .profile-section {
+      margin-top: var(--space-md);
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.55);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+    }
+
+    .profile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .profile-head-main {
+      min-width: 0;
+    }
+
+    .profile-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+    }
+
+    .profile-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .profile-svg {
+      width: 100%;
+      height: 160px;
+      display: block;
+      overflow: visible;
+    }
+
+    .profile-summary {
+      margin-top: 8px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .profile-summary strong {
+      color: var(--text-secondary);
+      font-weight: 700;
+    }
+
+    .profile-intercept {
+      margin-top: 10px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .profile-intercept-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .profile-intercept-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+    }
+
+    .profile-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .profile-metric-chip {
+      border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.07);
+      background: rgba(255, 255, 255, 0.56);
+      padding: 9px 10px;
+      min-width: 0;
+    }
+
+    .profile-metric-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      min-width: 0;
+    }
+
+    .profile-metric-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px var(--metric-glow, transparent);
+    }
+
+    .profile-metric-swatch.mean {
+      background: var(--color-mean);
+      --metric-glow: var(--glow-mean);
+    }
+
+    .profile-metric-swatch.q95 {
+      background: var(--color-q95);
+      --metric-glow: var(--glow-q95);
+    }
+
+    .profile-metric-swatch.q99 {
+      background: var(--color-q99);
+      --metric-glow: var(--glow-q99);
+    }
+
+    .profile-metric-value {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .profile-toggle {
+      display: inline-flex;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255, 255, 255, 0.54);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+      flex-shrink: 0;
+    }
+
+    .profile-toggle-btn {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--text-secondary);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+    }
+
+    .profile-toggle-btn:hover:not(:disabled) {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.74);
+      transform: translateY(-1px);
+    }
+
+    .profile-toggle-btn.active {
+      background: rgba(122, 170, 255, 0.20);
+      color: rgba(0, 0, 0, 0.86);
+      box-shadow: 0 4px 12px rgba(122, 170, 255, 0.14);
+    }
+
+    .profile-toggle-btn:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+      transform: none;
     }
 
 
@@ -553,6 +899,7 @@
       font-size: 10px;
       font-weight: 600;
       margin-top: 8px;
+      letter-spacing: 0.02em;
     }
 
     /* Status indicator */
@@ -589,7 +936,8 @@
       position: absolute;
       right: var(--space-lg);
       bottom: var(--space-lg);
-      max-width: 400px;
+      width: 380px;
+      max-width: calc(100% - 500px);
       background: var(--bg-panel);
       border: 1px solid var(--border-subtle);
       border-radius: 16px;
@@ -668,7 +1016,8 @@
     /* Legend floating panel */
     #legend-float {
       position: absolute;
-      left: var(--space-lg);
+      left: 50%;
+      transform: translateX(-50%);
       bottom: var(--space-lg);
       display: flex;
       gap: var(--space-lg);
@@ -679,7 +1028,7 @@
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
 
-      animation: slideIn 0.8s var(--ease-out-expo) both;
+      animation: slideInCentered 0.8s var(--ease-out-expo) both;
       animation-delay: 0.5s;
     }
 
@@ -712,16 +1061,28 @@
         display: none;
       }
 
+      #rhs-tools {
+        top: var(--space-lg);
+        width: 390px;
+        max-width: calc(100% - 420px);
+      }
+
       #legend-float {
-        left: 50%;
-        transform: translateX(-50%);
-        bottom: 100px;
+        bottom: var(--space-lg);
+      }
+
+      #profileFloat {
+        right: var(--space-lg);
+        top: 148px;
+        bottom: 152px;
+        transform: none;
+        width: 340px;
+        max-width: calc(100% - 420px);
       }
 
       #hint {
-        left: var(--space-lg);
-        right: var(--space-lg);
-        max-width: none;
+        width: 340px;
+        max-width: calc(100% - 420px);
       }
     }
 
@@ -733,10 +1094,38 @@
         padding: var(--space-md);
       }
 
+      #rhs-tools {
+        left: 50%;
+        right: auto;
+        top: var(--space-md);
+        width: calc(100% - 32px);
+        max-width: 420px;
+        transform: translateX(-50%);
+        padding: var(--space-md);
+      }
+
+      #profileFloat {
+        left: 50%;
+        right: auto;
+        top: auto;
+        bottom: 152px;
+        width: calc(100% - 32px);
+        max-width: 420px;
+        transform: translateX(-50%);
+      }
+
       #legend-float {
         flex-wrap: wrap;
         gap: var(--space-sm) var(--space-md);
         justify-content: center;
+      }
+
+      #hint {
+        left: 50%;
+        right: auto;
+        width: calc(100% - 32px);
+        max-width: 420px;
+        transform: translateX(-50%);
       }
     }
 
@@ -790,6 +1179,7 @@
     .observed-content {
       display: flex;
       gap: var(--space-md);
+      align-items: flex-start;
     }
 
     .observed-input-col {
@@ -854,6 +1244,27 @@
 
     .observed-warning.visible {
       display: block;
+    }
+
+    .rarity-readout {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.07);
+      background: rgba(255, 255, 255, 0.56);
+      color: var(--text-secondary);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .rarity-readout strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .rarity-readout.empty {
+      color: var(--text-muted);
+      font-style: italic;
     }
 
     /* Traffic Light Column */
@@ -1052,6 +1463,21 @@
       </div>
     </div>
 
+    <div class="control-section" id="regimeSection" style="display:none;">
+      <div class="control-row">
+        <div class="control-label">
+          <span class="label-text">Shift regime</span>
+          <span class="label-value" id="regimeVal">All shifts</span>
+        </div>
+        <div class="segmented-control" role="tablist" aria-label="Shift regime">
+          <button id="regimeAll" class="segment-btn active" type="button">All shifts</button>
+          <button id="regimeDay" class="segment-btn" type="button">Day</button>
+          <button id="regimeNight" class="segment-btn" type="button">Night</button>
+        </div>
+        <div class="regime-info" id="regimeInfo">All shifts: combined day/night manifold.</div>
+      </div>
+    </div>
+
     <!-- Observed Overlap Section - positioned after sliders for natural workflow -->
     <div class="observed-section" id="observedSection">
       <div class="observed-header">
@@ -1109,6 +1535,35 @@
           </div>
         </div>
       </div>
+      <div class="rarity-readout empty" id="rarityReadout">Exact percentile and tail-probability readout will appear when the manifold pack includes the simulated max-overlap distribution.</div>
+    </div>
+
+    <div class="meta-info">
+      <div class="meta-text" id="meta">Loading simulation parameters...</div>
+      <div class="meta-badge" id="modeBadge">—</div>
+    </div>
+
+    <div id="status">
+      <div class="status-dot loading"></div>
+      <span id="statusText">Loading manifold data...</span>
+    </div>
+  </div>
+
+  <div id="rhs-tools">
+    <div class="control-section">
+      <div class="control-row">
+        <div class="control-label">
+          <span class="label-text">Camera preset</span>
+          <span class="label-value" id="viewModeVal">Isometric</span>
+        </div>
+        <div class="button-row">
+          <button id="viewIso" class="view-btn active" type="button">Isometric</button>
+          <button id="viewPbar" class="view-btn" type="button">Across <span class="overbar">p</span></button>
+          <button id="viewM" class="view-btn" type="button">Across M</button>
+          <button id="viewTop" class="view-btn" type="button">Top</button>
+        </div>
+        <div class="control-hint">Front-on 3D can visually compress the p̄ slope. Use "Across <span class="overbar">p</span>" or the slice profile on the right to inspect it directly.</div>
+      </div>
     </div>
 
     <div class="interaction-card">
@@ -1121,46 +1576,49 @@
         <li><span class="kbd-inline">Drag the X</span> on the floor grid to move the intercept (updates the sliders)</li>
       </ul>
     </div>
+  </div>
 
-    <div class="intercept-section">
-      <div class="intercept-header">
-        <div class="intercept-crosshair">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
-          </svg>
-        </div>
-        <span class="intercept-title">INTERCEPT</span>
+  <div class="profile-section" id="profileFloat">
+    <div class="profile-header">
+      <div class="profile-head-main">
+        <span class="profile-title">M-SLICE PROFILE</span>
+        <span class="profile-subtitle" id="profileSubtitle">Current M across mean presence</span>
+      </div>
+      <div class="profile-toggle" aria-label="Profile mode">
+        <button id="profileModeOverlap" class="profile-toggle-btn" type="button">Overlap</button>
+        <button id="profileModeTail" class="profile-toggle-btn" type="button">Tail probability</button>
+      </div>
+    </div>
+    <svg id="profileSvg" class="profile-svg" viewBox="0 0 320 160" aria-label="Slice profile"></svg>
+    <div class="profile-summary" id="profileSummary">Preparing slope summary…</div>
+    <div class="profile-intercept">
+      <div class="profile-intercept-head">
+        <span class="profile-intercept-title">CURRENT INTERCEPT</span>
         <span class="intercept-coords" id="interceptCoords">(M=40, p̄=25.0%)</span>
       </div>
-
-      <div class="metric-row">
-        <div class="metric-dot mean"></div>
-        <span class="metric-label">Mean(max) <span class="metric-help"><div class="tooltip">The average highest overlap across all simulated trials. This is roughly how many incidents the most-exposed nurse would share by chance alone in a typical random scenario.</div></span></span>
-        <span class="metric-value" id="valMean">—</span>
+      <div class="profile-metrics">
+        <div class="profile-metric-chip">
+          <div class="profile-metric-head">
+            <span class="profile-metric-swatch mean"></span>
+            <span>Mean</span>
+          </div>
+          <span class="profile-metric-value" id="valMean">—</span>
+        </div>
+        <div class="profile-metric-chip">
+          <div class="profile-metric-head">
+            <span class="profile-metric-swatch q95"></span>
+            <span>Q95</span>
+          </div>
+          <span class="profile-metric-value" id="valQ95">—</span>
+        </div>
+        <div class="profile-metric-chip">
+          <div class="profile-metric-head">
+            <span class="profile-metric-swatch q99"></span>
+            <span>Q99</span>
+          </div>
+          <span class="profile-metric-value" id="valQ99">—</span>
+        </div>
       </div>
-
-      <div class="metric-row">
-        <div class="metric-dot q95"></div>
-        <span class="metric-label">Q95(max) <span class="metric-help"><div class="tooltip">The 95th-percentile highest overlap. In 95% of random simulations the most-exposed nurse shared no more than this many incidents. Only 5% of chance scenarios produce a higher value.</div></span></span>
-        <span class="metric-value" id="valQ95">—</span>
-      </div>
-
-      <div class="metric-row">
-        <div class="metric-dot q99"></div>
-        <span class="metric-label">Q99(max) <span class="metric-help"><div class="tooltip">The 99th-percentile highest overlap. In 99% of random simulations the most-exposed nurse shared no more than this many incidents. Only 1% of chance scenarios produce a higher value.</div></span></span>
-        <span class="metric-value" id="valQ99">—</span>
-      </div>
-    </div>
-
-    <div class="meta-info">
-      <div class="meta-text" id="meta">Loading simulation parameters...</div>
-      <div class="meta-badge" id="modeBadge">—</div>
-    </div>
-
-    <div id="status">
-      <div class="status-dot loading"></div>
-      <span id="statusText">Loading manifold data...</span>
     </div>
   </div>
 
@@ -1186,22 +1644,31 @@
 
   <!-- Controls hint -->
   <div id="hint">
-    <div class="hint-title">Navigation</div>
+    <div class="hint-title">Navigation & Mouse</div>
     <div class="hint-content">
       <kbd>Drag</kbd> to orbit · <kbd>Scroll</kbd> to zoom · <kbd>Drag&nbsp;the&nbsp;X</kbd> to move intercept<br>
-      Sliders show expected max overlap under random assignment.
+      Sliders and the top camera dock update the expected max-overlap view.
     </div>
   </div>
 </div>
 
 <script type="module">
-  // ---- Canonical manifold filename (no timestamp) ----
-  const MANIFOLD_URL = "./manifold_roster_pack.json";
+  // ---- Canonical manifold filenames (no timestamps) ----
+  const MANIFOLD_URLS = {
+    all: "./manifold_roster_pack.json",
+    day: "./manifold_roster_pack_day.json",
+    night: "./manifold_roster_pack_night.json"
+  };
 
   import * as THREE from "three";
   import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
   // ---------- DOM refs ----------
+  const panelEl = document.getElementById("panel");
+  const rhsToolsEl = document.getElementById("rhs-tools");
+  const profileFloatEl = document.getElementById("profileFloat");
+  const hintEl = document.getElementById("hint");
+  const legendFloatEl = document.getElementById("legend-float");
   const mSlider = document.getElementById("mSlider");
   const pSlider = document.getElementById("pSlider");
   const mValEl = document.getElementById("mVal");
@@ -1214,12 +1681,28 @@
   const modeBadgeEl = document.getElementById("modeBadge");
   const statusDot = document.querySelector(".status-dot");
   const statusText = document.getElementById("statusText");
+  const regimeValEl = document.getElementById("regimeVal");
+  const regimeInfoEl = document.getElementById("regimeInfo");
+  const regimeAllBtn = document.getElementById("regimeAll");
+  const regimeDayBtn = document.getElementById("regimeDay");
+  const regimeNightBtn = document.getElementById("regimeNight");
+  const viewModeValEl = document.getElementById("viewModeVal");
+  const viewIsoBtn = document.getElementById("viewIso");
+  const viewPbarBtn = document.getElementById("viewPbar");
+  const viewMBtn = document.getElementById("viewM");
+  const viewTopBtn = document.getElementById("viewTop");
+  const profileSvg = document.getElementById("profileSvg");
+  const profileSubtitleEl = document.getElementById("profileSubtitle");
+  const profileSummaryEl = document.getElementById("profileSummary");
+  const profileModeOverlapBtn = document.getElementById("profileModeOverlap");
+  const profileModeTailBtn = document.getElementById("profileModeTail");
 
   // Observed overlap section DOM refs
   const observedSection = document.getElementById("observedSection");
   const observedInput = document.getElementById("observedInput");
   const observedHint = document.getElementById("observedHint");
   const observedWarning = document.getElementById("observedWarning");
+  const rarityReadout = document.getElementById("rarityReadout");
   const trafficLight = document.getElementById("trafficLight");
   const lampRed = document.getElementById("lampRed");
   const lampOrange = document.getElementById("lampOrange");
@@ -1232,6 +1715,151 @@
 
   // ---------- helpers ----------
   function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+
+  function formatStaffingSummary(params) {
+    const mode = params.staffing_mode || "unconstrained";
+    if (mode === "day_night") {
+      const day = params.day_staffing ?? "?";
+      const night = params.night_staffing ?? "?";
+      const frac = params.day_fraction != null ? `${Math.round(params.day_fraction * 100)}% day` : "day split?";
+      return `staffing=day/night (${day}/${night}, ${frac})`;
+    }
+    if (mode === "fixed") {
+      return `staffing=fixed (${params.nurses_per_shift ?? "?"}/shift)`;
+    }
+    return "staffing=unconstrained";
+  }
+
+  function regimeLabel(key) {
+    if (key === "day") return "Day";
+    if (key === "night") return "Night";
+    return "All shifts";
+  }
+
+  function packHasDistribution(pack) {
+    const dist = pack?.distribution;
+    const shape = dist?.shape;
+    const flat = dist?.max_overlap_hist;
+    if (!Array.isArray(shape) || shape.length !== 3) return false;
+    if (!Array.isArray(flat)) return false;
+    return flat.length === shape[0] * shape[1] * shape[2];
+  }
+
+  function formatProbability(prob) {
+    if (!(prob >= 0)) return "—";
+    const pct = prob * 100;
+    if (pct >= 10) return `${pct.toFixed(1)}%`;
+    if (pct >= 1) return `${pct.toFixed(2)}%`;
+    return `${pct.toFixed(2)}%`;
+  }
+
+  function formatFrequency(prob, totalTrials = 0) {
+    if (!(prob > 0)) {
+      return totalTrials > 0 ? `< 1 in ${Math.round(totalTrials).toLocaleString()}` : "too rare to estimate";
+    }
+    const oneIn = 1 / prob;
+    if (oneIn <= 1.5) return "more than 1 in 2";
+    if (oneIn < 10) return `1 in ${oneIn.toFixed(1)}`;
+    if (oneIn < 100) return `1 in ${Math.round(oneIn)}`;
+    return `1 in ${Math.round(oneIn).toLocaleString()}`;
+  }
+
+  function formatPercentile(prob) {
+    if (!(prob >= 0)) return "—";
+    return `${(prob * 100).toFixed(1)} percentile`;
+  }
+
+  function rarityNarrative(tailProb) {
+    if (!(tailProb >= 0)) return "distribution unavailable";
+    if (tailProb >= 0.20) return "common under neutral rostering";
+    if (tailProb >= 0.05) return "well within neutral variation";
+    if (tailProb >= 0.01) return "unusual, but still inside the neutral tail";
+    return "very rare under this neutral model";
+  }
+
+  function histogramStatsForCell(pack, row, col, threshold) {
+    if (!packHasDistribution(pack)) return null;
+
+    const shape = pack.distribution.shape;
+    const bins = shape[2];
+    const flat = pack.distribution.max_overlap_hist;
+    const capped = clamp(Math.round(threshold), 0, bins - 1);
+    const offset = (row * shape[1] + col) * bins;
+
+    let total = 0;
+    let cdfCount = 0;
+    let tailCount = 0;
+    for (let k = 0; k < bins; k++) {
+      const count = Number(flat[offset + k]) || 0;
+      total += count;
+      if (k <= capped) cdfCount += count;
+      if (k >= capped) tailCount += count;
+    }
+    if (total <= 0) return null;
+
+    return {
+      total,
+      cdfProb: cdfCount / total,
+      tailProb: tailCount / total
+    };
+  }
+
+  function getRarityInfo(pbar, incidentIndex, observedValue) {
+    if (!packHasDistribution(manifold)) return null;
+
+    const r0 = findInterval(pGrid, pbar);
+    const r1 = Math.min(rows - 1, r0 + 1);
+    const y0 = pGrid[r0];
+    const y1 = pGrid[r1];
+    const ty = (r1 === r0 || y1 === y0) ? 0 : clamp((pbar - y0) / (y1 - y0), 0, 1);
+
+    const row0 = histogramStatsForCell(manifold, r0, incidentIndex, observedValue);
+    const row1 = histogramStatsForCell(manifold, r1, incidentIndex, observedValue);
+    const fallback = row0 || row1;
+    if (!fallback) return null;
+
+    const left = row0 || fallback;
+    const right = row1 || fallback;
+    const tailSeries = [];
+    for (let r = 0; r < rows; r++) {
+      const rowStats = histogramStatsForCell(manifold, r, incidentIndex, observedValue);
+      tailSeries.push(rowStats ? rowStats.tailProb : 0);
+    }
+
+    const tailProb = left.tailProb * (1 - ty) + right.tailProb * ty;
+    const cdfProb = left.cdfProb * (1 - ty) + right.cdfProb * ty;
+    const minTail = Math.min(...tailSeries);
+    const maxTail = Math.max(...tailSeries);
+    const totalTrials = Math.max(left.total, right.total);
+
+    return {
+      tailProb,
+      cdfProb,
+      totalTrials,
+      frequencyText: formatFrequency(tailProb, totalTrials),
+      narrative: rarityNarrative(tailProb),
+      tailSeries,
+      minTail,
+      maxTail
+    };
+  }
+
+  function regimeInfoText(key, pack) {
+    const params = pack?.params || {};
+    const sRegime = params.S_regime ?? params.S ?? "?";
+    if (key === "day") {
+      return `Day shifts only: ~${params.day_staffing ?? "?"} nurses/shift | S=${sRegime} regime shifts`;
+    }
+    if (key === "night") {
+      return `Night shifts only: ~${params.night_staffing ?? "?"} nurses/shift | S=${sRegime} regime shifts`;
+    }
+    const dayPct = params.day_fraction != null ? `${Math.round(params.day_fraction * 100)}% day` : "mixed day/night";
+    return `All shifts: combined day/night manifold | ${dayPct} | ~${params.day_staffing ?? "?"} day / ${params.night_staffing ?? "?"} night nurses per shift`;
+  }
+
+  function rosterModeLabel(pack) {
+    return pack?.mode === "ensemble" ? "ENSEMBLE ROSTERS" : "FIXED WARD STRUCTURE";
+  }
 
   // Smoothstep for visual polish on transitions
   function smoothstep(edge0, edge1, x) {
@@ -1313,6 +1941,19 @@
     el.style.setProperty("--pct", `${clamp(pct, 0, 100)}%`);
   }
 
+  function updateLegendAnchor() {
+    legendFloatEl.style.left = `${app.clientWidth / 2}px`;
+    if (rhsToolsEl) {
+      const appRect = app.getBoundingClientRect();
+      const rhsRect = rhsToolsEl.getBoundingClientRect();
+      const rhsCenter = (rhsRect.left - appRect.left) + (rhsRect.width / 2);
+      if (rhsCenter > 0) {
+        legendFloatEl.style.left = `${rhsCenter}px`;
+      }
+    }
+    legendFloatEl.style.transform = "translateX(-50%)";
+  }
+
 
   function findInterval(grid, x) {
     const n = grid.length;
@@ -1348,7 +1989,7 @@
     return z0 * (1 - ty) + z1 * ty;
   }
 
-  function buildSurfaceGeometry(gridX, gridY, flat, rows, cols, scale) {
+  function buildSurfacePositions(gridX, gridY, flat, rows, cols, scale) {
     const positions = new Float32Array(rows * cols * 3);
     const xMin = gridX[0], xMax = gridX[cols - 1];
     const yMin = gridY[0], yMax = gridY[rows - 1];
@@ -1367,7 +2008,11 @@
         positions[idx + 2] = z * scale.baseZ;
       }
     }
+    return { positions, xMin, xMax, yMin, yMax, xSpan, ySpan };
+  }
 
+  function buildSurfaceGeometry(gridX, gridY, flat, rows, cols, scale) {
+    const { positions, xMin, xMax, yMin, yMax, xSpan, ySpan } = buildSurfacePositions(gridX, gridY, flat, rows, cols, scale);
     const indices = [];
     for (let r = 0; r < rows - 1; r++) {
       for (let c = 0; c < cols - 1; c++) {
@@ -1384,7 +2029,7 @@
     geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geom.setIndex(indices);
     geom.computeVertexNormals();
-    return { geom, xMin, xMax, yMin, yMax, xSpan, ySpan };
+    return { geom, positions, xMin, xMax, yMin, yMax, xSpan, ySpan };
   }
 
   function sceneCoordsFromAxes(M, pbar, zVal, axesInfo, scale) {
@@ -1395,30 +2040,113 @@
     return new THREE.Vector3(x, y, z);
   }
 
-  // ---------- Load manifold ----------
-  let manifold;
-  try {
-    const resp = await fetch(MANIFOLD_URL);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    manifold = await resp.json();
-    statusDot.classList.remove("loading");
-    statusText.textContent = "Ready";
-    // Show the observed overlap section now that data is loaded
-    observedSection.classList.add("ready");
-  } catch (e) {
-    statusText.textContent = `Failed: ${e.message}`;
-    throw e;
+  // ---------- Load manifolds ----------
+  async function loadManifoldPack(key, url) {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`${key}: HTTP ${resp.status}`);
+    return resp.json();
   }
+
+  function arraysEqual(a = [], b = []) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
+
+  function validatePackCompatibility(reference, candidate, key) {
+    if (!candidate) return;
+    const sameShape = arraysEqual(reference.axes.shape || [], candidate.axes.shape || []);
+    const sameIncidentGrid = arraysEqual(reference.axes.incident_grid || [], candidate.axes.incident_grid || []);
+    const samePresenceGrid = arraysEqual(reference.axes.mean_presence_grid || [], candidate.axes.mean_presence_grid || []);
+    if (!sameShape || !sameIncidentGrid || !samePresenceGrid) {
+      throw new Error(`${key}: axes do not match manifold_roster_pack.json`);
+    }
+    if (packHasDistribution(reference) && packHasDistribution(candidate)) {
+      const sameDistributionShape = arraysEqual(reference.distribution.shape || [], candidate.distribution.shape || []);
+      if (!sameDistributionShape) {
+        throw new Error(`${key}: distribution shape does not match manifold_roster_pack.json`);
+      }
+    }
+  }
+
+  // Always load the combined pack first
+  const manifolds = { all: null, day: null, night: null };
+  const missingRegimes = [];
+
+  try {
+    manifolds.all = await loadManifoldPack("all", MANIFOLD_URLS.all);
+  } catch (e) {
+    const message = "Failed: could not load manifold pack";
+    statusText.textContent = message;
+    throw new Error(message);
+  }
+
+  // Only load day/night packs when the generator used day_night staffing mode
+  const isDayNightMode = (manifolds.all.params?.staffing_mode || "unconstrained") === "day_night";
+
+  if (isDayNightMode) {
+    const regimeEntries = await Promise.allSettled(
+      ["day", "night"].map(async (key) => [key, await loadManifoldPack(key, MANIFOLD_URLS[key])])
+    );
+    for (const entry of regimeEntries) {
+      if (entry.status === "fulfilled") {
+        const [key, pack] = entry.value;
+        manifolds[key] = pack;
+      } else {
+        const match = /^(day|night):/.exec(entry.reason?.message || "");
+        if (match) missingRegimes.push(match[1]);
+      }
+    }
+    validatePackCompatibility(manifolds.all, manifolds.day, "day");
+    validatePackCompatibility(manifolds.all, manifolds.night, "night");
+
+    // Show the regime toggle
+    document.getElementById("regimeSection").style.display = "";
+  }
+
+  let manifold = manifolds.all;
+  let activeRegimeKey = "all";
+  let meanFlat = manifold.surfaces.mean_max;
+  let q95Flat = manifold.surfaces.q95_max;
+  let q99Flat = manifold.surfaces.q99_max;
+  let profileMode = packHasDistribution(manifold) ? "tail" : "overlap";
 
   const incidentGrid = manifold.axes.incident_grid;
   const pGrid = manifold.axes.mean_presence_grid;
   const [rows, cols] = manifold.axes.shape;
 
-  const meanFlat = manifold.surfaces.mean_max;
-  const q95Flat  = manifold.surfaces.q95_max;
-  const q99Flat  = manifold.surfaces.q99_max;
+  const availableRegimes = Object.keys(manifolds).filter((key) => !!manifolds[key]);
+  const zTopData = Math.max(...availableRegimes.map((key) => Math.max(...manifolds[key].surfaces.q99_max)));
 
-  const zTop = Math.max(...q99Flat);
+  statusDot.classList.remove("loading");
+  statusText.textContent = missingRegimes.length ? `Ready (${availableRegimes.join(", ")})` : "Ready";
+  observedSection.classList.add("ready");
+
+  // Compute grid divisions to match tick marks on each axis
+  // X-axis (incidents): ticks every 10 from first to last grid value
+  const xMin0 = incidentGrid[0], xMax0 = incidentGrid[incidentGrid.length - 1];
+  const xTickStep = 10;
+  const xDivisions = Math.round((xMax0 - xMin0) / xTickStep);
+  // Y-axis (mean presence): ticks every 5% from 10% to 40%
+  const yMin0 = pGrid[0], yMax0 = pGrid[pGrid.length - 1];
+  const yTickStep = 0.05;
+  const yDivisions = Math.round((yMax0 - yMin0) / yTickStep);
+  // Z-axis: choose a nice round step that gives 4-6 ticks, cap to next round number
+  function niceZStep(zMax) {
+    const candidates = [5, 10, 20, 25, 50];
+    for (const s of candidates) {
+      if (Math.ceil(zMax / s) <= 6) return s;
+    }
+    return 50;
+  }
+  const zTickStep = niceZStep(zTopData);
+  const zTickMax = Math.ceil(zTopData / zTickStep) * zTickStep;
+  const zDivisions = Math.round(zTickMax / zTickStep);
+
+  // Use zTickMax as Z scale so the grid box exactly contains all tick marks
+  const zTop = zTickMax;
   const scale = { baseX: 12.0, baseY: 8.0, baseZ: 10.0, z: zTop };
 
   // slider setup
@@ -1441,6 +2169,55 @@
   syncSliderFill(mSlider);
   syncSliderFill(pSlider);
 
+  const regimeButtons = {
+    all: regimeAllBtn,
+    day: regimeDayBtn,
+    night: regimeNightBtn
+  };
+
+  function updateMetaDisplay() {
+    const p = manifold.params || {};
+    let rDesc;
+    if (p.R != null) {
+      rDesc = `R=${p.R.toLocaleString()} trials`;
+    } else if (p.R_min != null && p.R_max != null) {
+      rDesc = `Râˆˆ[${p.R_min.toLocaleString()}â€“${p.R_max.toLocaleString()}] adaptive`;
+    } else {
+      rDesc = "R=? trials";
+    }
+
+    const sTotal = p.S_total ?? p.S ?? "?";
+    const sRegime = p.S_regime ?? sTotal;
+    let metaParts = `N=${p.N} nurses | S=${sTotal} shifts | ${rDesc} | ${formatStaffingSummary(p)}`;
+    if (isDayNightMode) {
+      const regimePart = activeRegimeKey === "all"
+        ? "view=all shifts"
+        : `view=${activeRegimeKey} only (S=${sRegime}/${sTotal})`;
+      metaParts += ` | ${regimePart}`;
+    }
+
+    metaEl.textContent = metaParts;
+    modeBadgeEl.textContent = rosterModeLabel(manifold);
+    regimeValEl.textContent = regimeLabel(activeRegimeKey);
+    regimeInfoEl.textContent = regimeInfoText(activeRegimeKey, manifold);
+
+    Object.entries(regimeButtons).forEach(([key, btn]) => {
+      const enabled = !!manifolds[key];
+      btn.disabled = !enabled;
+      btn.classList.toggle("active", key === activeRegimeKey);
+    });
+  }
+
+  function updateProfileModeControls() {
+    const tailReady = packHasDistribution(manifold);
+    if (!tailReady && profileMode === "tail") {
+      profileMode = "overlap";
+    }
+    profileModeOverlapBtn.classList.toggle("active", profileMode === "overlap");
+    profileModeTailBtn.classList.toggle("active", profileMode === "tail");
+    profileModeTailBtn.disabled = !tailReady;
+  }
+
   // meta display
   const p = manifold.params;
   // Handle both fixed-R and adaptive MC modes
@@ -1452,9 +2229,12 @@
   } else {
     rDesc = "R=? trials";
   }
-  metaEl.textContent = `N=${p.N} nurses · S=${p.S} shifts · ${rDesc}`;
+  metaEl.textContent = `N=${p.N} nurses · S=${p.S} shifts · ${rDesc} · ${formatStaffingSummary(p)}`;
   // Mode tag from Python is "ensemble" or "fixed" (not "ensemble_rosters")
-  modeBadgeEl.textContent = manifold.mode === "ensemble" ? "ENSEMBLE ROSTERS" : "FIXED ROSTER";
+  modeBadgeEl.textContent = manifold.mode === "ensemble" ? "ENSEMBLE ROSTERS" : "FIXED WARD STRUCTURE";
+
+  updateMetaDisplay();
+  updateProfileModeControls();
 
   // ---------- Three.js scene ----------
   const app = document.getElementById("app");
@@ -1472,20 +2252,29 @@
 
   const camera = new THREE.PerspectiveCamera(42, app.clientWidth / app.clientHeight, 0.1, 200);
 
-  // Match matplotlib's default 3D view: elev=30°, azim=-60°
-  // In matplotlib: azim=-60 means 60° clockwise from +x when looking down
-  // elev=30 means 30° above the xy plane
-  // Converting to Three.js camera position:
-  const distance = 32;
-  const elevRad = 30 * Math.PI / 180;  // 30 degrees elevation
-  const azimRad = -50 * Math.PI / 180; // Adjusted azimuth to match Python matplotlib view
+  function cameraCartesian(distance, elevDeg, azimDeg) {
+    const elevRad = elevDeg * Math.PI / 180;
+    const azimRad = azimDeg * Math.PI / 180;
+    return {
+      x: distance * Math.cos(elevRad) * Math.cos(azimRad),
+      y: distance * Math.cos(elevRad) * Math.sin(azimRad),
+      z: distance * Math.sin(elevRad)
+    };
+  }
 
-  // Spherical to Cartesian (matplotlib convention: z is up, azim measured from +x)
-  const camX = distance * Math.cos(elevRad) * Math.cos(azimRad);
-  const camY = distance * Math.cos(elevRad) * Math.sin(azimRad);
-  const camZ = distance * Math.sin(elevRad);
+  const CAMERA_PRESETS = {
+    iso: { label: "Isometric", labelHtml: "Isometric", distance: 32, elev: 30, azim: -50 },
+    pbar: { label: "Across p", labelHtml: 'Across <span class="overbar">p</span>', distance: 28, elev: 12, azim: 0 },
+    incidents: { label: "Across M", labelHtml: "Across M", distance: 28, elev: 12, azim: -90 },
+    top: { label: "Top", labelHtml: "Top", distance: 26, elev: 88, azim: -45 }
+  };
 
-  camera.position.set(camX, camY, camZ);
+  const initialCamera = cameraCartesian(
+    CAMERA_PRESETS.iso.distance,
+    CAMERA_PRESETS.iso.elev,
+    CAMERA_PRESETS.iso.azim
+  );
+  camera.position.set(initialCamera.x, initialCamera.y, initialCamera.z);
   camera.up.set(0, 0, 1); // Z is up
 
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -1494,6 +2283,27 @@
   controls.target.set(0, 0, scale.baseZ * 0.4);
   controls.minDistance = 8;
   controls.maxDistance = 50;
+
+  const viewButtons = {
+    iso: viewIsoBtn,
+    pbar: viewPbarBtn,
+    incidents: viewMBtn,
+    top: viewTopBtn
+  };
+  let activeCameraPreset = "iso";
+
+  function applyCameraPreset(name) {
+    const preset = CAMERA_PRESETS[name] || CAMERA_PRESETS.iso;
+    const pos = cameraCartesian(preset.distance, preset.elev, preset.azim);
+    camera.position.set(pos.x, pos.y, pos.z);
+    controls.target.set(0, 0, scale.baseZ * 0.4);
+    controls.update();
+    activeCameraPreset = name;
+    viewModeValEl.innerHTML = preset.labelHtml || preset.label;
+    Object.entries(viewButtons).forEach(([key, btn]) => {
+      btn.classList.toggle("active", key === name);
+    });
+  }
 
   // Lights - adjusted for white background
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
@@ -1511,10 +2321,10 @@
   const gridPanelColor = 0xe8e8e8;
   const gridLineColor = 0x999999;
   const gridOpacity = 0.65;
-  const gridDivisions = 8;
-
   // Create filled panel with grid lines
-  function createGridPanel(sizeX, sizeY, position, rotation, divisions) {
+  // divisionsX/divisionsY control line count per axis independently
+  function createGridPanel(sizeX, sizeY, position, rotation, divisionsX, divisionsY) {
+    if (divisionsY === undefined) divisionsY = divisionsX;
     const group = new THREE.Group();
 
     // Filled background panel
@@ -1531,9 +2341,9 @@
     // Grid lines
     const lineMat = new THREE.LineBasicMaterial({ color: gridLineColor, transparent: true, opacity: gridOpacity });
 
-    // Lines along X direction
-    for (let i = 0; i <= divisions; i++) {
-      const t = i / divisions - 0.5;
+    // Lines along X direction (horizontal — controlled by divisionsY)
+    for (let i = 0; i <= divisionsY; i++) {
+      const t = i / divisionsY - 0.5;
       const y = t * sizeY;
       const geom = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(-sizeX/2, y, 0.01),
@@ -1542,9 +2352,9 @@
       group.add(new THREE.Line(geom, lineMat));
     }
 
-    // Lines along Y direction
-    for (let i = 0; i <= divisions; i++) {
-      const t = i / divisions - 0.5;
+    // Lines along Y direction (vertical — controlled by divisionsX)
+    for (let i = 0; i <= divisionsX; i++) {
+      const t = i / divisionsX - 0.5;
       const x = t * sizeX;
       const geom = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(x, -sizeY/2, 0.01),
@@ -1558,25 +2368,25 @@
     return group;
   }
 
-  // Floor grid (XY plane at z=0)
+  // Floor grid (XY plane at z=0): X = incidents, Y = mean presence
   const floorGrid = createGridPanel(scale.baseX, scale.baseY,
     new THREE.Vector3(0, 0, 0),
     new THREE.Vector3(0, 0, 0),
-    gridDivisions);
+    xDivisions, yDivisions);
   scene.add(floorGrid);
 
-  // Back wall grid (XZ plane at y = +baseY/2) - this is the "far" y wall
+  // Back wall grid (XZ plane at y = +baseY/2): X = incidents, Z = overlaps
   const backWallGrid = createGridPanel(scale.baseX, scale.baseZ,
     new THREE.Vector3(0, scale.baseY/2, scale.baseZ/2),
     new THREE.Vector3(Math.PI/2, 0, 0),
-    gridDivisions);
+    xDivisions, zDivisions);
   scene.add(backWallGrid);
 
-  // Left wall grid (YZ plane at x = -baseX/2) - mean presence vs overlaps plane at M=0
+  // Left wall grid (YZ plane at x = -baseX/2): X = mean presence, Z = overlaps
   const leftWallGrid = createGridPanel(scale.baseY, scale.baseZ,
     new THREE.Vector3(-scale.baseX/2, 0, scale.baseZ/2),
     new THREE.Vector3(Math.PI/2, Math.PI/2, 0),
-    gridDivisions);
+    yDivisions, zDivisions);
   scene.add(leftWallGrid);
 
   // Axis lines (solid black edges of the box)
@@ -1702,13 +2512,24 @@
     scene.add(tick);
   }
 
-  // Z-axis tick labels (overlaps: 0, 20, 40, 60, 80) - along right-back vertical edge (RHS of back panel)
-  for (let z = 0; z <= 80; z += 20) {
+  // Z-axis tick labels - dynamic range matching actual data
+  for (let z = 0; z <= zTickMax; z += zTickStep) {
     const tick = createTickLabel(String(z));
     const zPos = (z / zTop) * scale.baseZ;
     tick.position.set(scale.baseX/2 + 0.9, scale.baseY/2 - 0.2, zPos);
     scene.add(tick);
   }
+
+  const surfacePositionCache = {};
+  availableRegimes.forEach((key) => {
+    const pack = manifolds[key];
+    surfacePositionCache[key] = {
+      mean: buildSurfacePositions(incidentGrid, pGrid, pack.surfaces.mean_max, rows, cols, scale).positions,
+      q95: buildSurfacePositions(incidentGrid, pGrid, pack.surfaces.q95_max, rows, cols, scale).positions,
+      q99: buildSurfacePositions(incidentGrid, pGrid, pack.surfaces.q99_max, rows, cols, scale).positions
+    };
+  });
+
   // Surfaces
   function makeSurface(flat, colorHex, opacity) {
     const info = buildSurfaceGeometry(incidentGrid, pGrid, flat, rows, cols, scale);
@@ -1729,6 +2550,45 @@
   const surfMean = makeSurface(meanFlat, 0x7aaaff, 0.35);
   const surfQ95  = makeSurface(q95Flat,  0xffb45a, 0.30);
   const surfQ99  = makeSurface(q99Flat,  0x78ffaa, 0.25);
+  const surfaceMeshes = {
+    mean: surfMean.mesh,
+    q95: surfQ95.mesh,
+    q99: surfQ99.mesh
+  };
+  const surfaceTransition = {
+    active: false,
+    startMs: 0,
+    durationMs: 400,
+    from: null,
+    to: null
+  };
+
+  function applyManifold(key) {
+    const next = manifolds[key] || manifolds.all;
+    activeRegimeKey = manifolds[key] ? key : "all";
+    manifold = next;
+    meanFlat = next.surfaces.mean_max;
+    q95Flat = next.surfaces.q95_max;
+    q99Flat = next.surfaces.q99_max;
+    updateMetaDisplay();
+    updateProfileModeControls();
+  }
+
+  function transitionToRegime(key) {
+    if (!manifolds[key] || key === activeRegimeKey) return;
+
+    surfaceTransition.from = {
+      mean: new Float32Array(surfaceMeshes.mean.geometry.attributes.position.array),
+      q95: new Float32Array(surfaceMeshes.q95.geometry.attributes.position.array),
+      q99: new Float32Array(surfaceMeshes.q99.geometry.attributes.position.array)
+    };
+    surfaceTransition.to = surfacePositionCache[key];
+    surfaceTransition.startMs = performance.now();
+    surfaceTransition.active = true;
+
+    applyManifold(key);
+    updateInterceptAndLegend();
+  }
 
   // Vertical guide line + spheres
   const lineMat = new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.6 });
@@ -1920,6 +2780,202 @@
     return pMin + t * (pMax - pMin);
   }
 
+  function seriesAtIncident(flat, incidentIndex) {
+    const out = [];
+    for (let r = 0; r < rows; r++) out.push(at2D(flat, rows, cols, r, incidentIndex));
+    return out;
+  }
+
+  function makeProfilePath(series, xFn, yFn) {
+    return series.map((v, i) => `${i === 0 ? "M" : "L"} ${xFn(pGrid[i]).toFixed(2)} ${yFn(v).toFixed(2)}`).join(" ");
+  }
+
+  function getObservedProfileInfo(M, mean, q95, q99) {
+    const rawValue = observedInput.value.trim();
+    const obs = parseInt(rawValue, 10);
+    if (rawValue === "" || isNaN(obs)) return null;
+
+    const displayValue = obs > M ? M : obs;
+    const state = calculateTrafficLight(displayValue, mean, q95, q99);
+    const colorHex = getObservedColor(state);
+
+    return {
+      rawValue: obs,
+      displayValue,
+      clamped: obs > M,
+      state,
+      colorHex,
+      colorCss: `#${colorHex.toString(16).padStart(6, "0")}`
+    };
+  }
+
+  function updateOverlapProfilePlot(M, pbar, zMean, zQ95, zQ99, observedInfo = null, rarityInfo = null) {
+    const incidentIndex = parseInt(mSlider.value, 10);
+    const meanSeries = seriesAtIncident(meanFlat, incidentIndex);
+    const q95Series = seriesAtIncident(q95Flat, incidentIndex);
+    const q99Series = seriesAtIncident(q99Flat, incidentIndex);
+
+    const svgW = 320;
+    const svgH = 160;
+    const padLeft = 28;
+    const padRight = 10;
+    const padTop = 8;
+    const padBottom = 34;
+    const innerW = svgW - padLeft - padRight;
+    const innerH = svgH - padTop - padBottom;
+
+    const yMaxRaw = Math.max(...q99Series, zQ99, observedInfo ? observedInfo.displayValue : 1, 1);
+    const yMax = Math.max(5, Math.ceil(yMaxRaw / 5) * 5);
+    const xFn = (pVal) => padLeft + ((pVal - pMin) / (pMax - pMin)) * innerW;
+    const yFn = (zVal) => padTop + (1 - clamp(zVal / yMax, 0, 1)) * innerH;
+    const markerX = xFn(pbar);
+
+    const guideTicks = [0, yMax / 2, yMax].map(v => Math.round(v));
+    const gridLines = guideTicks.map((tick) => {
+      const y = yFn(tick);
+      return `
+        <line x1="${padLeft}" y1="${y.toFixed(2)}" x2="${(padLeft + innerW).toFixed(2)}" y2="${y.toFixed(2)}" stroke="rgba(0,0,0,0.10)" stroke-width="1" />
+        <text x="${(padLeft - 6)}" y="${(y + 4).toFixed(2)}" text-anchor="end" font-size="10" fill="rgba(0,0,0,0.45)" font-family="JetBrains Mono, monospace">${tick}</text>
+      `;
+    }).join("");
+
+    const pTicks = [0.10, 0.20, 0.30, 0.40].map((tick) => {
+      const x = xFn(tick);
+      return `
+        <line x1="${x.toFixed(2)}" y1="${padTop}" x2="${x.toFixed(2)}" y2="${(padTop + innerH).toFixed(2)}" stroke="rgba(0,0,0,0.06)" stroke-width="1" />
+        <text x="${x.toFixed(2)}" y="${(padTop + innerH + 16).toFixed(2)}" text-anchor="middle" font-size="10" fill="rgba(0,0,0,0.45)" font-family="JetBrains Mono, monospace">${Math.round(tick * 100)}%</text>
+      `;
+    }).join("");
+
+    const currentDots = [
+      { z: zMean, color: "#7aaaff" },
+      { z: zQ95, color: "#ffb45a" },
+      { z: zQ99, color: "#78ffaa" }
+    ].map(({ z, color }) => {
+      const y = yFn(z);
+      return `<circle cx="${markerX.toFixed(2)}" cy="${y.toFixed(2)}" r="4.2" fill="${color}" stroke="rgba(0,0,0,0.35)" stroke-width="1" />`;
+    }).join("");
+
+    const observedDot = observedInfo ? (() => {
+      const y = yFn(observedInfo.displayValue);
+      return `
+        <circle cx="${markerX.toFixed(2)}" cy="${y.toFixed(2)}" r="8.0" fill="${observedInfo.colorCss}" fill-opacity="0.14" />
+        <circle cx="${markerX.toFixed(2)}" cy="${y.toFixed(2)}" r="5.8" fill="${observedInfo.colorCss}" stroke="rgba(0,0,0,0.55)" stroke-width="1.4" />
+        <circle cx="${(markerX - 1.4).toFixed(2)}" cy="${(y - 1.8).toFixed(2)}" r="1.9" fill="rgba(255,255,255,0.55)" />
+      `;
+    })() : "";
+
+    profileSvg.innerHTML = `
+      <rect x="0" y="0" width="${svgW}" height="${svgH}" rx="12" fill="rgba(255,255,255,0.55)" />
+      ${gridLines}
+      ${pTicks}
+      <line x1="${padLeft}" y1="${(padTop + innerH).toFixed(2)}" x2="${(padLeft + innerW).toFixed(2)}" y2="${(padTop + innerH).toFixed(2)}" stroke="rgba(0,0,0,0.16)" stroke-width="1.2" />
+      <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${(padTop + innerH).toFixed(2)}" stroke="rgba(0,0,0,0.16)" stroke-width="1.2" />
+      <path d="${makeProfilePath(meanSeries, xFn, yFn)}" fill="none" stroke="#7aaaff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="${makeProfilePath(q95Series, xFn, yFn)}" fill="none" stroke="#ffb45a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="${makeProfilePath(q99Series, xFn, yFn)}" fill="none" stroke="#78ffaa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      <line x1="${markerX.toFixed(2)}" y1="${padTop}" x2="${markerX.toFixed(2)}" y2="${(padTop + innerH).toFixed(2)}" stroke="rgba(0,0,0,0.28)" stroke-dasharray="4 4" stroke-width="1.2" />
+      ${currentDots}
+      ${observedDot}
+      <text x="${(padLeft + innerW / 2).toFixed(2)}" y="${(svgH - 6).toFixed(2)}" text-anchor="middle" font-size="10" fill="rgba(0,0,0,0.50)" font-family="JetBrains Mono, monospace">Mean presence (p̄)</text>
+    `;
+
+    profileSubtitleEl.textContent = `Current M=${M} slice across mean presence - ${regimeLabel(activeRegimeKey)}`;
+    const spanMean = meanSeries[meanSeries.length - 1] - meanSeries[0];
+    const spanQ95 = q95Series[q95Series.length - 1] - q95Series[0];
+    const spanQ99 = q99Series[q99Series.length - 1] - q99Series[0];
+    profileSummaryEl.innerHTML =
+      `<strong>10%→40% span</strong> Mean ${spanMean >= 0 ? "+" : ""}${spanMean.toFixed(2)} · ` +
+      `Q95 ${spanQ95 >= 0 ? "+" : ""}${spanQ95.toFixed(1)} · ` +
+      `Q99 ${spanQ99 >= 0 ? "+" : ""}${spanQ99.toFixed(1)}<br>` +
+      `<strong>Current p̄=${(pbar * 100).toFixed(1)}%</strong> Mean ${zMean.toFixed(2)} · ` +
+      `Q95 ${Math.ceil(zQ95)} · Q99 ${Math.ceil(zQ99)}`;
+    if (observedInfo) {
+      profileSummaryEl.innerHTML += `<br><strong>Observed</strong> ${observedInfo.displayValue}${observedInfo.clamped ? ` (clamped from ${observedInfo.rawValue})` : ""}`;
+    }
+    if (rarityInfo && observedInfo) {
+      profileSummaryEl.innerHTML += `<br><strong>Chance of ≥ ${observedInfo.displayValue}</strong> ${formatProbability(rarityInfo.tailProb)} (${rarityInfo.frequencyText})`;
+    }
+  }
+
+  function updateTailProfilePlot(M, pbar, observedInfo, rarityInfo) {
+    const svgW = 320;
+    const svgH = 160;
+    const padLeft = 34;
+    const padRight = 12;
+    const padTop = 8;
+    const padBottom = 34;
+    const innerW = svgW - padLeft - padRight;
+    const innerH = svgH - padTop - padBottom;
+
+    const tailSeries = rarityInfo?.tailSeries || [];
+    const yMaxRaw = Math.max(rarityInfo?.maxTail || 0, rarityInfo?.tailProb || 0, 0.05);
+    const yMax = Math.max(0.05, Math.ceil(yMaxRaw * 20) / 20);
+    const xFn = (pVal) => padLeft + ((pVal - pMin) / (pMax - pMin)) * innerW;
+    const yFn = (prob) => padTop + (1 - clamp(prob / yMax, 0, 1)) * innerH;
+    const markerX = xFn(pbar);
+    const markerY = yFn(rarityInfo.tailProb);
+
+    const yTicks = [0, yMax / 2, yMax];
+    const gridLines = yTicks.map((tick) => {
+      const y = yFn(tick);
+      return `
+        <line x1="${padLeft}" y1="${y.toFixed(2)}" x2="${(padLeft + innerW).toFixed(2)}" y2="${y.toFixed(2)}" stroke="rgba(0,0,0,0.10)" stroke-width="1" />
+        <text x="${(padLeft - 6)}" y="${(y + 4).toFixed(2)}" text-anchor="end" font-size="10" fill="rgba(0,0,0,0.45)" font-family="JetBrains Mono, monospace">${(tick * 100).toFixed(0)}%</text>
+      `;
+    }).join("");
+
+    const pTicks = [0.10, 0.20, 0.30, 0.40].map((tick) => {
+      const x = xFn(tick);
+      return `
+        <line x1="${x.toFixed(2)}" y1="${padTop}" x2="${x.toFixed(2)}" y2="${(padTop + innerH).toFixed(2)}" stroke="rgba(0,0,0,0.06)" stroke-width="1" />
+        <text x="${x.toFixed(2)}" y="${(padTop + innerH + 16).toFixed(2)}" text-anchor="middle" font-size="10" fill="rgba(0,0,0,0.45)" font-family="JetBrains Mono, monospace">${Math.round(tick * 100)}%</text>
+      `;
+    }).join("");
+
+    const thresholdLines = [
+      { prob: 0.05, label: "5%" },
+      { prob: 0.01, label: "1%" }
+    ].filter(({ prob }) => prob <= yMax + 1e-9).map(({ prob, label }) => {
+      const y = yFn(prob);
+      return `
+        <line x1="${padLeft}" y1="${y.toFixed(2)}" x2="${(padLeft + innerW).toFixed(2)}" y2="${y.toFixed(2)}" stroke="rgba(217,122,30,0.35)" stroke-width="1" stroke-dasharray="4 4" />
+        <text x="${(padLeft + innerW - 2).toFixed(2)}" y="${(y - 4).toFixed(2)}" text-anchor="end" font-size="9" fill="rgba(217,122,30,0.72)" font-family="JetBrains Mono, monospace">${label}</text>
+      `;
+    }).join("");
+
+    const tailPath = tailSeries.map((prob, i) => `${i === 0 ? "M" : "L"} ${xFn(pGrid[i]).toFixed(2)} ${yFn(prob).toFixed(2)}`).join(" ");
+
+    profileSvg.innerHTML = `
+      <rect x="0" y="0" width="${svgW}" height="${svgH}" rx="12" fill="rgba(255,255,255,0.55)" />
+      ${gridLines}
+      ${pTicks}
+      ${thresholdLines}
+      <line x1="${padLeft}" y1="${(padTop + innerH).toFixed(2)}" x2="${(padLeft + innerW).toFixed(2)}" y2="${(padTop + innerH).toFixed(2)}" stroke="rgba(0,0,0,0.16)" stroke-width="1.2" />
+      <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${(padTop + innerH).toFixed(2)}" stroke="rgba(0,0,0,0.16)" stroke-width="1.2" />
+      <path d="${tailPath}" fill="none" stroke="rgba(60,78,109,0.92)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+      <line x1="${markerX.toFixed(2)}" y1="${padTop}" x2="${markerX.toFixed(2)}" y2="${(padTop + innerH).toFixed(2)}" stroke="rgba(0,0,0,0.28)" stroke-dasharray="4 4" stroke-width="1.2" />
+      <circle cx="${markerX.toFixed(2)}" cy="${markerY.toFixed(2)}" r="8.0" fill="${observedInfo.colorCss}" fill-opacity="0.14" />
+      <circle cx="${markerX.toFixed(2)}" cy="${markerY.toFixed(2)}" r="5.8" fill="${observedInfo.colorCss}" stroke="rgba(0,0,0,0.55)" stroke-width="1.4" />
+      <circle cx="${(markerX - 1.4).toFixed(2)}" cy="${(markerY - 1.8).toFixed(2)}" r="1.9" fill="rgba(255,255,255,0.55)" />
+      <text x="${(padLeft + innerW / 2).toFixed(2)}" y="${(svgH - 6).toFixed(2)}" text-anchor="middle" font-size="10" fill="rgba(0,0,0,0.50)" font-family="JetBrains Mono, monospace">Mean presence (p̄)</text>
+    `;
+
+    profileSubtitleEl.textContent = `Chance that any nurse reaches ${observedInfo.displayValue}+ overlaps - ${regimeLabel(activeRegimeKey)}`;
+    profileSummaryEl.innerHTML =
+      `<strong>Across p̄</strong> chance ranges from ${formatProbability(rarityInfo.minTail)} to ${formatProbability(rarityInfo.maxTail)}<br>` +
+      `<strong>Current p̄=${(pbar * 100).toFixed(1)}%</strong> ${formatProbability(rarityInfo.tailProb)} chance (${rarityInfo.frequencyText})<br>` +
+      `<strong>Percentile</strong> ${formatPercentile(rarityInfo.cdfProb)} · ${rarityInfo.narrative}`;
+  }
+
+  function updateProfilePlot(M, pbar, zMean, zQ95, zQ99, observedInfo = null, rarityInfo = null) {
+    if (profileMode === "tail" && observedInfo && rarityInfo) {
+      updateTailProfilePlot(M, pbar, observedInfo, rarityInfo);
+      return;
+    }
+    updateOverlapProfilePlot(M, pbar, zMean, zQ95, zQ99, observedInfo, rarityInfo);
+  }
+
   function updateInterceptAndLegend() {
     const M = currentM();
     const pbar = currentP();
@@ -1957,25 +3013,49 @@
     sQ95.position.copy(sceneCoordsFromAxes(M, pbar, q95Disp, axesInfo, scale));
     sQ99.position.copy(sceneCoordsFromAxes(M, pbar, q99Disp, axesInfo, scale));
 
+    const observedInfo = getObservedProfileInfo(M, zMean, q95Disp, q99Disp);
+    const rarityInfo = observedInfo ? getRarityInfo(pbar, parseInt(mSlider.value, 10), observedInfo.displayValue) : null;
+    updateProfilePlot(M, pbar, zMean, zQ95, zQ99, observedInfo, rarityInfo);
+
     // Update observed overlap section
-    updateObservedOverlap(M, zMean, q95Disp, q99Disp, axesInfo, pbar);
+    updateObservedOverlap(M, zMean, q95Disp, q99Disp, axesInfo, pbar, observedInfo, rarityInfo);
+  }
+
+  function updateRarityReadout(M, pbar, observedInfo, rarityInfo) {
+    if (!observedInfo) {
+      rarityReadout.classList.add("empty");
+      rarityReadout.innerHTML = "Enter an observed overlap to estimate how often chance alone reaches it.";
+      return;
+    }
+
+    if (!packHasDistribution(manifold) || !rarityInfo) {
+      rarityReadout.classList.add("empty");
+      rarityReadout.innerHTML = "Regenerate the manifold JSON packs to enable exact percentile and tail-probability values from the Monte Carlo runs.";
+      return;
+    }
+
+    rarityReadout.classList.remove("empty");
+    const regime = regimeLabel(activeRegimeKey).toLowerCase();
+    rarityReadout.innerHTML =
+      `<strong>Plain-English readout</strong><br>` +
+      `At M=${M} and p̄=${(pbar * 100).toFixed(1)}%, roughly <strong>${rarityInfo.frequencyText}</strong> ${regime} neutral simulations put at least one nurse on <strong>${observedInfo.displayValue}+</strong> incidents.<br>` +
+      `<strong>Chance</strong> ${formatProbability(rarityInfo.tailProb)} · <strong>Percentile</strong> ${formatPercentile(rarityInfo.cdfProb)} · ${rarityInfo.narrative}.`;
   }
 
   // Handle observed overlap input and traffic light
-  function updateObservedOverlap(M, mean, q95, q99, axesInfo, pbar) {
+  function updateObservedOverlap(M, mean, q95, q99, axesInfo, pbar, observedInfo = null, rarityInfo = null) {
     // Update max value hint
     observedInput.max = M;
-
-    const rawValue = observedInput.value.trim();
-    const obs = parseInt(rawValue, 10);
+    const info = observedInfo || getObservedProfileInfo(M, mean, q95, q99);
 
     // Handle empty/invalid input
-    if (rawValue === '' || isNaN(obs)) {
+    if (!info) {
       trafficLight.classList.add('neutral');
       sObserved.visible = false;
       legendObserved.style.display = 'none';
       observedWarning.classList.remove('visible');
       observedInput.classList.remove('warning');
+      updateRarityReadout(M, pbar, null, null);
       // Clear all label underlines
       labelGreen.classList.remove('active');
       labelOrange.classList.remove('active');
@@ -1985,44 +3065,27 @@
 
     trafficLight.classList.remove('neutral');
 
-    // Handle value exceeding M
-    if (obs > M) {
+    if (info.clamped) {
       observedWarning.classList.add('visible');
       observedInput.classList.add('warning');
-      // Still show traffic light but clamped
-      const clampedObs = M;
-      const state = calculateTrafficLight(clampedObs, mean, q95, q99);
-      applyTrafficLight(state);
-      // Position sphere at M (clamped)
-      sObserved.visible = true;
-      sObserved.position.copy(sceneCoordsFromAxes(currentM(), pbar, clampedObs, axesInfo, scale));
-      const color = getObservedColor(state);
-      sObserved.material.color.setHex(color);
-      sObserved.material.emissive.setHex(color);
-      // Update legend
-      legendObserved.style.display = 'flex';
-      legendObservedSwatch.style.background = `#${color.toString(16).padStart(6, '0')}`;
-      return;
+    } else {
+      observedWarning.classList.remove('visible');
+      observedInput.classList.remove('warning');
     }
 
-    // Valid input
-    observedWarning.classList.remove('visible');
-    observedInput.classList.remove('warning');
-
-    // Calculate and apply traffic light
-    const state = calculateTrafficLight(obs, mean, q95, q99);
-    applyTrafficLight(state);
+    applyTrafficLight(info.state);
 
     // Update observed sphere
     sObserved.visible = true;
-    sObserved.position.copy(sceneCoordsFromAxes(currentM(), pbar, obs, axesInfo, scale));
-    const color = getObservedColor(state);
-    sObserved.material.color.setHex(color);
-    sObserved.material.emissive.setHex(color);
+    sObserved.position.copy(sceneCoordsFromAxes(currentM(), pbar, info.displayValue, axesInfo, scale));
+    sObserved.material.color.setHex(info.colorHex);
+    sObserved.material.emissive.setHex(info.colorHex);
 
     // Update legend
     legendObserved.style.display = 'flex';
-    legendObservedSwatch.style.background = `#${color.toString(16).padStart(6, '0')}`;
+    legendObservedSwatch.style.background = info.colorCss;
+
+    updateRarityReadout(M, pbar, info, rarityInfo);
   }
 
   // Event listener for observed input
@@ -2036,19 +3099,44 @@
     const q95Disp = Math.ceil(zQ95);
     const q99Disp = Math.ceil(zQ99);
     const axesInfo = surfMean.info;
-    updateObservedOverlap(M, zMean, q95Disp, q99Disp, axesInfo, pbar);
+    const observedInfo = getObservedProfileInfo(M, zMean, q95Disp, q99Disp);
+    const rarityInfo = observedInfo ? getRarityInfo(pbar, parseInt(mSlider.value, 10), observedInfo.displayValue) : null;
+    updateProfilePlot(M, pbar, zMean, zQ95, zQ99, observedInfo, rarityInfo);
+    updateObservedOverlap(M, zMean, q95Disp, q99Disp, axesInfo, pbar, observedInfo, rarityInfo);
   });
+
+  viewIsoBtn.addEventListener("click", () => applyCameraPreset("iso"));
+  viewPbarBtn.addEventListener("click", () => applyCameraPreset("pbar"));
+  viewMBtn.addEventListener("click", () => applyCameraPreset("incidents"));
+  viewTopBtn.addEventListener("click", () => applyCameraPreset("top"));
+  profileModeOverlapBtn.addEventListener("click", () => {
+    profileMode = "overlap";
+    updateProfileModeControls();
+    updateInterceptAndLegend();
+  });
+  profileModeTailBtn.addEventListener("click", () => {
+    if (!packHasDistribution(manifold)) return;
+    profileMode = "tail";
+    updateProfileModeControls();
+    updateInterceptAndLegend();
+  });
+  regimeAllBtn.addEventListener("click", () => transitionToRegime("all"));
+  regimeDayBtn.addEventListener("click", () => transitionToRegime("day"));
+  regimeNightBtn.addEventListener("click", () => transitionToRegime("night"));
 
   mSlider.addEventListener("input", updateInterceptAndLegend);
   pSlider.addEventListener("input", updateInterceptAndLegend);
 
+  applyCameraPreset("iso");
   updateInterceptAndLegend();
+  updateLegendAnchor();
 
   function onResize() {
     const w = app.clientWidth, h = app.clientHeight;
     renderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    updateLegendAnchor();
   }
   window.addEventListener("resize", onResize);
 
@@ -2057,6 +3145,32 @@
   function animate() {
     requestAnimationFrame(animate);
     time += 0.016;
+
+    if (surfaceTransition.active && surfaceTransition.from && surfaceTransition.to) {
+      const elapsed = performance.now() - surfaceTransition.startMs;
+      const t = clamp(elapsed / surfaceTransition.durationMs, 0, 1);
+      const eased = smoothstep(0, 1, t);
+
+      ["mean", "q95", "q99"].forEach((key) => {
+        const geometry = surfaceMeshes[key].geometry;
+        const attr = geometry.attributes.position;
+        const arr = attr.array;
+        const from = surfaceTransition.from[key];
+        const to = surfaceTransition.to[key];
+
+        for (let i = 0; i < arr.length; i++) {
+          arr[i] = from[i] + (to[i] - from[i]) * eased;
+        }
+        attr.needsUpdate = true;
+        geometry.computeVertexNormals();
+      });
+
+      if (t >= 1) {
+        surfaceTransition.active = false;
+        surfaceTransition.from = null;
+        surfaceTransition.to = null;
+      }
+    }
 
     // Subtle breathing effect on spheres
     const breathe = 1 + Math.sin(time * 2) * 0.05;
